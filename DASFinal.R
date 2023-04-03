@@ -15,13 +15,15 @@ DrugDataSetFull <- DrugDataSetFull %>%
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
+DrugDataSetFull <- left_join(DrugDataSetFull,)
+
 DrugDataSetFull <- left_join(world, DrugDataSetFull, by = c("admin" = "location")) %>%
   select(measure, admin, iso_a3, year, sex, age, cause, val, geometry)
 
 colnames(DrugDataSetFull)[8] = "estimate"
 
-DrugDataSetFull <- DrugDataSetFull %>%
-  sort(admin, year, age, cause)
+#DrugDataSetFull <- DrugDataSetFull %>%
+ # sort(admin, year, age, cause)
 
 unique(DrugDataSetFull$location)
 unique(world$name_long)
