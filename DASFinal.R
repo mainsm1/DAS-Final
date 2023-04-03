@@ -10,11 +10,10 @@ library(readr)
 
 DrugDataSetFull <- read_csv("IHME-GBD_2019_DATA-671c0649-1.csv")
 Iso_code_countries <- read_excel("Copy of IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08.xlsx")
+world <- ne_countries(scale = "medium", returnclass = "sf")
 
 DrugDataSetFull <- DrugDataSetFull %>%
   arrange(desc(measure), location, year, age, cause)
-
-world <- ne_countries(scale = "medium", returnclass = "sf")
 
 DrugDataSetFull <- left_join(DrugDataSetFull, Iso_code_countries, by=c('location' = 'location_name'))
 
