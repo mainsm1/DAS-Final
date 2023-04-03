@@ -1,0 +1,35 @@
+---
+title: "Untitled"
+author: "Lizzy Daugherty"
+date: "2023-03-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+IHME_GBD_2019_DATA_671c0649_1 <- read_csv("C:/Users/lizzy/Downloads/IHME-GBD_2019_DATA-671c0649-1.csv")
+View(IHME_GBD_2019_DATA_671c0649_1)
+```
+
+```{r}
+library(readr)
+IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08 <- read_csv("C:/Users/lizzy/Downloads/IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08.csv")
+View(IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08)
+```
+
+```{r}
+IsoCodes <- IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08 
+```
+
+```{r}
+DrugData <- IHME_GBD_2019_DATA_671c0649_1
+```
+
+```{r}
+DrugDataFull <- left_join(DrugData, IsoCodes, by=c('location' = 'location_name'))
+```
+
