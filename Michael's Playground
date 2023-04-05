@@ -1,1 +1,92 @@
+library(tidyverse)
+library(openintro)
+library(plotly)
+library("rnaturalearth")
+library("rnaturalearthdata")
+library(readxl)
+library(shiny)
+library(readr)
+
+
+DrugDataSetFull <- read_csv("IHME-GBD_2019_DATA-671c0649-1.csv") ###Data for comparing/graphing Sex, age, etc. 
+DrugDataNoAgeSex <- read_csv("DrugDataNoAgeSex.csv") ###Data For Mapping
+Iso_code_countries <- read_excel("Copy of IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08.xlsx") ###Iso codes for linking full data and map data
+world <- ne_countries(scale = "medium", returnclass = "sf") ###World data for mapping
+
+my_colors <- c("yellow","blue", "green","white","orange", "red")
+
+
+######################################################################################################
+
+DrugDataNoAgeSex <- left_join(DrugDataNoAgeSex, Iso_code_countries, by=c('location' = 'location_name'))
+
+#DrugDataNoAgeSex <- left_join(world, DrugDataNoAgeSex, by = c("iso_a3" = "ISO3")) %>%
+ # select(measure, admin, iso_a3, year, cause, val, geometry)
+
+#DrugDataNoAgeSex <- DrugDataNoAgeSex %>%
+ # arrange(measure, admin, year, cause)
+
+colnames(DrugDataNoAgeSex)[8] = "estimate"
+
+MeanNoAgeSex <-  DrugDataNoAgeSex %>%
+  filter(measure == "Incidence") %>%
+  group_by(cause) %>%
+  summarise('Mean Drug Usage Per 100k' = mean(estimate))
+
+MeanNoAgeSexDeath <-  DrugDataNoAgeSex %>%
+  filter(measure == "Deaths") %>%
+  group_by(cause) %>%
+  summarise('Mean Drug Deaths Per 100k' = mean(estimate))
+
+
+###Plot of Drug incidence rate mean, Regardless of Sex, Age, or Year, per 100k people
+ggplot(MeanNoAgeSex, aes(cause, `Mean Drug Usage Per 100k`, fill = cause)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Drug Usage, Regardless of Sex, Age, or Year, per 100k people") +
+  theme(axis.text.x = element_text(face = "bold", size  = 6, angle = 30),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10, angle = 30))
+
+
+###Plot of Drug incidence rate mean, Regardless of Sex, Age, or Year, per 100k people
+ggplot(MeanNoAgeSexDeath, aes(cause, `Mean Drug Usage Per 100k`, fill = my_colors)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Drug Death Rate, Regardless of Sex, Age, or Year, per 100k people") +
+  theme(axis.text.x = element_text(face = "bold", size  = 6, angle = 30),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10, angle = 30))
+
+GGFFF <- DrugDataNoAgeSex %>%
+  filter()
+
+######################################################################################################
+
+
+###Full Data for looking at sex differences 
+
+
+DrugDataSetFull <- DrugDataSetFull %>%
+  arrange(desc(measure), location, year, age, cause)
+
+DrugDataSetFull <- left_join(DrugDataSetFull, Iso_code_countries, by=c('location' = 'location_name'))
+
+DrugDataSetFullMapData <- left_join(world, DrugDataSetFull, by = c("iso_a3" = "ISO3")) %>%
+  select(measure, admin, iso_a3, year, sex, age, cause, val, geometry)
+
+colnames(DrugDataSetFull)[8] = "estimate"
+
+DrugDataSetFull <- DrugDataSetFull %>%
+  arrange(measure, admin, year, desc(age), cause)
+
+DrugDataSetFull %>%
+  group_by(cause) %>%
+  filter(sex == "Male") %>%
+  summarise(mean(estimate))
+
+
+
+
+
+
+
+
+
 
