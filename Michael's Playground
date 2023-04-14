@@ -6,27 +6,29 @@ library("rnaturalearthdata")
 library(readxl)
 library(shiny)
 library(readr)
+library(gitcreds)
+library(usethis)
 
 
-DrugDataSetFull <- read_csv("IHME-GBD_2019_DATA-671c0649-1.csv") ###Data for comparing/graphing Sex, age, etc. 
-DrugDataNoAgeSex <- read_csv("DrugDataNoAgeSex.csv") ###Data For Mapping
-Iso_code_countries <- read_excel("Copy of IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08.xlsx") ###Iso codes for linking full data and map data
-world <- ne_countries(scale = "medium", returnclass = "sf") ###World data for mapping
+
+DrugDataSetFull <- read_csv("IHME-GBD_2019_DATA-671c0649-1.csv")
+DrugDataNoAgeSex <- read_csv("DrugDataNoAgeSex.csv")
+Iso_code_countries <- read_excel("Copy of IHME_GBD_2019_AIR_POLLUTION_1990_2019_ISO3_CODES_Y2021M10D08.xlsx")
+world <- ne_countries(scale = "medium", returnclass = "sf") 
 
 my_colors <- c("yellow","blue", "green","white","orange", "red")
+my_colors2 <-c("red", "blue")
 
-
+my_map_theme <- function(){
+  theme(panel.background=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank())
+}
 ######################################################################################################
 
-DrugDataNoAgeSex <- left_join(DrugDataNoAgeSex, Iso_code_countries, by=c('location' = 'location_name'))
-
-#DrugDataNoAgeSex <- left_join(world, DrugDataNoAgeSex, by = c("iso_a3" = "ISO3")) %>%
- # select(measure, admin, iso_a3, year, cause, val, geometry)
-
-#DrugDataNoAgeSex <- DrugDataNoAgeSex %>%
- # arrange(measure, admin, year, cause)
-
 colnames(DrugDataNoAgeSex)[8] = "estimate"
+colnames(DrugDataSetFull)[8] = "estimate"
 
 MeanNoAgeSex <-  DrugDataNoAgeSex %>%
   filter(measure == "Incidence") %>%
@@ -43,26 +45,191 @@ MeanNoAgeSexDeath <-  DrugDataNoAgeSex %>%
 ggplot(MeanNoAgeSex, aes(cause, `Mean Drug Usage Per 100k`, fill = cause)) + 
   geom_bar(stat = "identity") +
   labs(title = "Mean Drug Usage, Regardless of Sex, Age, or Year, per 100k people") +
-  theme(axis.text.x = element_text(face = "bold", size  = 6, angle = 30),
-        axis.text.y = element_text(face = "bold", color = "black", size = 10, angle = 30))
+  theme(axis.text.x = element_text(face = "bold", size  = 6, angle = 30 ),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10, angle = 45))
 
 
-###Plot of Drug incidence rate mean, Regardless of Sex, Age, or Year, per 100k people
-ggplot(MeanNoAgeSexDeath, aes(cause, `Mean Drug Usage Per 100k`, fill = my_colors)) + 
+###Plot of Drug-related death mean, Regardless of Sex, Age, or Year, per 100k people
+ggplot(MeanNoAgeSexDeath, aes(cause, `Mean Drug Deaths Per 100k`, fill = cause)) + 
   geom_bar(stat = "identity") +
   labs(title = "Mean Drug Death Rate, Regardless of Sex, Age, or Year, per 100k people") +
   theme(axis.text.x = element_text(face = "bold", size  = 6, angle = 30),
         axis.text.y = element_text(face = "bold", color = "black", size = 10, angle = 30))
 
-GGFFF <- DrugDataNoAgeSex %>%
-  filter()
+
 
 ######################################################################################################
+###Sex differences in Alcohol-use disorders: 
+
+AlcDrugData <- DrugDataSetFull %>%
+  filter(cause == "Alcohol use disorders")
+
+SexDiff.Inc.Alc <- AlcDrugData %>%
+  filter(measure == "Incidence") %>%
+  group_by(sex) %>%
+  summarise('Mean Alcohol-Use Disorder Incidence Rate Per 100k' = mean(estimate))
+    
+ggplot(SexDiff.Inc.Alc, aes(sex, `Mean Alcohol-Use Disorder Incidence Rate Per 100k`, fill = sex)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Global Mean Rate of Alcohol-Use Disorders Incidences by Sex, \nRegardless of Year or Age, per 100k people", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10)) +
+  scale_fill_manual(values = c("purple","orange"))
+
+SexDiff.Dea.Alc <- AlcDrugData %>%
+  filter(measure == "Deaths") %>%
+  group_by(sex) %>%
+  summarise('Mean Alcohol-Use Disorder Deaths Rate Per 100k' = mean(estimate))
+
+ggplot(SexDiff.Dea.Alc, aes(sex, `Mean Alcohol-Use Disorder Deaths Rate Per 100k`, fill = sex)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Global Mean Rate of Alcohol-Use Disorder Deaths by Sex, \nRegardless of Year or Age, per 100k people", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10)) +
+  scale_fill_manual(values = c("purple","orange"))
+
+SexDiff.Time.Line <- AlcDrugData %>%
+  filter(measure == "Incidence") %>%
+  group_by(year, sex) %>%
+  summarise('Mean Rate of Alcohol-Use Disorder Per 100k' = mean(estimate)) %>%
+  pivot_wider(names_from = sex, values_from = 'Mean Rate of Alcohol-Use Disorder Per 100k')
+
+ggplot(SexDiff.Time.Line) +
+  geom_line(aes(year, `Mean Rate of Alcohol-Use Disorder Per 100k`, color = sex)) +
+  labs(title = "Global Mean Rate of Alcohol-Use Disorder Incidences by Sex, \nRegardless of Age, per 100k people", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10))
 
 
-###Full Data for looking at sex differences 
+###All drug line graph over time
+
+All.yearly.line <- DrugDataNoAgeSex %>%
+  filter(measure == "Incidence") %>%
+  group_by(year, cause) %>%
+  summarise('Mean Estimated Number of People with a SUD Per 100k' = mean(estimate))
+
+ggplot(All.yearly.line) +
+  geom_line(aes(year, `Mean Estimated Number of People with a SUD Per 100k`, color = cause)) +
+  labs(title = "Global Mean Rate of Substance-Use Disorder Incidences by Year, \nRegardless of Age or Sex, per 100k people", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10))
+
+All.yearlyD.line <- DrugDataNoAgeSex %>%
+  filter(measure == "Deaths") %>%
+  group_by(year, cause) %>%
+  summarise('Mean Estimated Number of People with a SUD Per 100k' = mean(estimate))
+
+ggplot(All.yearlyD.line) +
+  geom_line(aes(year, `Mean Estimated Number of People with a SUD Per 100k`, color = cause)) 
+
+Specific.Alc.Line <- AlcDrugData %>%
+  filter(measure == "Incidence") %>%
+  group_by(year, location) %>%
+  filter(location == "Mongolia" | location == "Russian Federation") %>%
+  summarise('Mean AUD Per 100k People' = mean(estimate))
+
+ggplot(Specific.Alc.Line) +
+  geom_line(size = 2, aes(year, `Mean AUD Per 100k People`, color = location)) +
+  labs(title = "Mean Rate of Alcohol-Use Disorder Incidences by Year, \nRegardless of Age or Sex, per 100k people in Russia and Mongolia", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 10)) +
+  scale_color_manual(values = my_colors2)
+
+######################################################################################################
+###Age differences in Alcohol-use disorders
+
+AgeDiff.Inc.Alc <- AlcDrugData %>%
+  filter(measure == "Incidence") %>%
+  group_by(age) %>%
+  summarise('Mean Alcohol-Use Disorder Incidence Rates Per 100k' = mean(estimate))
+
+ggplot(AgeDiff.Inc.Alc, aes(age, `Mean Alcohol-Use Disorder Incidence Rates Per 100k`, fill = age)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Global Mean Rate of Alcohol-Use Disorders Incidences by Age Group, \nRegardless of Year or Sex, per 100k people", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 8, angle = 30),
+        axis.text.y = element_text(face = "bold", color = "black", size = 12, angle = 30)) +
+  scale_fill_manual(values = c("tan", "lightsalmon1", "plum1", "maroon2", "midnightblue", "dodgerblue2", "aquamarine1", "chartreuse1", "gold1"))
+
+AgeDiff.Dea.Alc <- AlcDrugData %>%
+  filter(measure == "Deaths") %>%
+  group_by(age) %>%
+  summarise('Mean Alcohol-Use Disorder Deaths Rate Per 100k' = mean(estimate))
+
+ggplot(AgeDiff.Dea.Alc, aes(age, `Mean Alcohol-Use Disorder Deaths Rate Per 100k` , fill = age)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Global Mean Rate of Alcohol-Use Disorders Deaths by Age Group, \nRegardless of Year or Sex, per 100k people", 
+       subtitle = "Based on estimates from the GBD") +
+  theme(axis.text.x = element_text(face = "bold", size  = 8, angle = 30),
+        axis.text.y = element_text(face = "bold", color = "black", size = 12, angle = 30)) +
+  scale_fill_manual(values = c("tan", "lightsalmon1", "plum1", "maroon2", "midnightblue", "dodgerblue2", "aquamarine1", "chartreuse1", "gold1"))
+
+######################################################################################################
+###Maps of Alcohol Use
+
+AlcDrugDataMap <- DrugDataNoAgeSex %>%
+  filter(cause == "Alcohol use disorders")
+
+AlcDrugDataMap$estimate <- round(AlcDrugDataMap$estimate)
+
+AlcDrugDataMap <- left_join(AlcDrugDataMap, Iso_code_countries, by=c('location' = 'location_name'))
+
+AlcDrugDataMap <- left_join(world, AlcDrugDataMap, by = c("iso_a3" = "ISO3")) %>%
+  select(measure, admin, iso_a3, year, cause, estimate, geometry) %>%
+  arrange(measure, admin, year, cause)
+
+AlcDrugDataMap <- AlcDrugDataMap %>%
+  filter(measure == "Incidence")
 
 
+###1999
+
+AlcDrugDataMap.1999 <- AlcDrugDataMap %>%
+  filter(year == "1999")
+
+AlcDrugDataMap.1999 %>%
+  mutate(text = paste("<b>", admin, "</b>\n", year, "</b>\n", "AUD Incidence Rate (Per 100k): ", estimate)) %>%
+  ggplot() +
+  geom_sf(aes(fill = estimate, text = text), color = "black") +
+  scale_fill_continuous(low = "blue", high = "red") +
+  my_map_theme() +
+  labs(title = "Mean Rate of People with Alcohol-Use Disorders,\nRegardless of Sex and Age, Across the World in 1999\n Per 100k",
+       subtitle = "Based on estimates from the GBD")
+
+###2009
+
+AlcDrugDataMap.2009 <- AlcDrugDataMap %>%
+  filter(year == "2009")
+  
+AlcDrugDataMap.2009 %>%
+  mutate(text = paste("<b>", admin, "</b>\n", year, "</b>\n", "AUD Incidence Rate (Per 100k): ", estimate)) %>%
+  ggplot() +
+  geom_sf(aes(fill = estimate, text = text), color = "black") +
+  scale_fill_continuous(low="blue", high="red") +
+  my_map_theme() +
+  labs(title = "Mean Rate of People with Alcohol-Use Disorders,\nRegardless of Sex and Age, Across the World in 2009\nPer 100k People",
+       subtitle = "Based on estimates from the GBD")
+
+###2019
+AlcDrugDataMap.2019 <- AlcDrugDataMap %>%
+  filter(year == "2019")
+
+AlcDrugDataMap.2019 %>%
+  mutate(text = paste("<b>", admin, "</b>\n", year, "</b>\n", "AUD Incidence Rate (Per 100k): ", estimate)) %>%
+  ggplot() +
+  geom_sf(aes(fill = estimate, text = text), color = "black") +
+  scale_fill_continuous(low="blue", high="red") +
+  my_map_theme() +
+  labs(title = "Mean Rate of People with Alcohol-Use Disorders,\nRegardless of Sex and Age, Across the World in 2019\nPer 100k People",
+       subtitle = "Based on estimates from the GBD")
+
+
+######################################################################################################
 DrugDataSetFull <- DrugDataSetFull %>%
   arrange(desc(measure), location, year, age, cause)
 
@@ -71,8 +238,6 @@ DrugDataSetFull <- left_join(DrugDataSetFull, Iso_code_countries, by=c('location
 DrugDataSetFullMapData <- left_join(world, DrugDataSetFull, by = c("iso_a3" = "ISO3")) %>%
   select(measure, admin, iso_a3, year, sex, age, cause, val, geometry)
 
-colnames(DrugDataSetFull)[8] = "estimate"
-
 DrugDataSetFull <- DrugDataSetFull %>%
   arrange(measure, admin, year, desc(age), cause)
 
@@ -80,6 +245,7 @@ DrugDataSetFull %>%
   group_by(cause) %>%
   filter(sex == "Male") %>%
   summarise(mean(estimate))
+
 
 
 
