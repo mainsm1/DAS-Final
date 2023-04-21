@@ -10,6 +10,12 @@ We are diving into the Global Burden of Disease data from 1999-2019 to seek to b
 + Does the presence of any substance use disorder increase the likelihood of another? Are any especially interrelated? 
 + What factors contribute to incidences?
 
+
+Other possible variables to include...
++ political structure
++ religious affiliation
++ legal drinking age?
+
 HELLO WORLD
 
 The stuff worked!!!!
