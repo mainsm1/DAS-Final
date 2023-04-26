@@ -246,9 +246,13 @@ DrugDataSetFull %>%
   filter(sex == "Male") %>%
   summarise(mean(estimate))
 
+#############################
 
-
-
+political_regime <- political_regime %>%
+  filter(Year >= 1999) %>%
+  mutate(regime_row_owid = factor(regime_row_owid, levels = c(0, 1, 2, 3), 
+                                            labels = c("Closed Autocracy", "Electoral Autocracy", "Electoral Democracy", 
+                                                       "Liberal Democracy")))
 
 
 
