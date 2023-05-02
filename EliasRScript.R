@@ -3,6 +3,7 @@ library(plotly)
 library("rnaturalearth")
 library("rnaturalearthdata")
 library(readr)
+library(stringr)
 
 data <- read_csv("Religion and DrinkAge with ISO3.csv")
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -30,4 +31,24 @@ mapdata %>% ggplot() +
 
 
 
+HYPOTHESIS TESTING BY SEX!!!!
+  
+ALCOHOL INCIDENCE
+females <- data %>% filter(sex == "Female" & measure == "Incidence" & cause == "Alcohol use disorders")
+males <- data %>% filter(sex == "Male" & measure == "Incidence" & cause == "Alcohol use disorders")
+t.test(females$val,males$val)
 
+ALCOHOL DEATHS
+females <- data %>% filter(sex == "Female" & measure == "Deaths" & cause == "Alcohol use disorders")
+males <- data %>% filter(sex == "Male" & measure == "Deaths" & cause == "Alcohol use disorders")
+t.test(females$val,males$val)
+
+CANNABIS INCIDENCE
+females <- data %>% filter(sex == "Female" & measure == "Incidence" & cause == "Cannabis use disorders")
+males <- data %>% filter(sex == "Male" & measure == "Incidence" & cause == "Cannabis use disorders")
+t.test(females$val,males$val)
+
+CANNABIS DEATHS
+females <- data %>% filter(sex == "Female" & measure == "Deaths" & cause == "Cannabis use disorders")
+males <- data %>% filter(sex == "Male" & measure == "Deaths" & cause == "Cannabis use disorders")
+t.test(females$val,males$val)
