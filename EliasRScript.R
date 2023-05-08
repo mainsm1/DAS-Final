@@ -5,8 +5,7 @@ library(stringr)
 
 
 # HYPOTHESIS TESTING BY SEX (for 2019)!!!
-data <- AgeStandardized_AlcoholCannabis %>% 
-  select(-1,-14) %>%
+data <- DrugFullDataset %>% 
   filter(year == 2019) %>%
   distinct()
   
@@ -45,3 +44,9 @@ thing <- alc.inc.2019 %>%
 model1 <- glm(data = thing, val ~ DrinkingAge.y)
 summary(model1)  
 # Conclusion: yes significant relationship between drinkage and alcohol incidence (2019)
+
+
+################################################################################
+
+p <- DrugFullDataset %>%
+  
