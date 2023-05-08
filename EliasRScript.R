@@ -48,5 +48,28 @@ summary(model1)
 
 ################################################################################
 
-p <- DrugFullDataset %>%
+y1999 <- DrugFullDataset %>%
+  filter(year == 1999)
+
+y2009 <- DrugFullDataset %>%
+  filter(year == 2009)
+
+y2019 <- DrugFullDataset %>%
+  filter(year == 2019)
   
+
+# Drinking Age Groups 
+# Burkina Faso is the only 13 y.o.
+# Mali is the only 15 y.o.
+# 16 countries have 16 y.o.
+# Cyprus and Malta have 17 y.o.
+# 114 countries have 18 y.o.
+# Canada and Korea have 19 y.o.
+# 5 countries have 20 y.o.
+# 17 countries have 21 y.o.
+# Eritrea is the only 25 y.o.
+# 10 countries have Total Ban
+# 12 countries have None
+
+
+
