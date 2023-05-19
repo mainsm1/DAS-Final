@@ -41,13 +41,23 @@ y2019 <- DrugFullDataset %>%
 # 10 countries have Total Ban
 # 12 countries have None
 
-drinkage <- mutate_at(drinkage, vars(Age), as.factor)
+##do initial analysis with the five categories and then if things look like 
+## some of the smaller groups are similar you can combine them
 
+drinkage <- mutate_at(drinkage, vars(Age), as.factor)
+##join partitioned drinkage with huge set
+bigboy <- DrugDataSetFull %>%
+  select(-9) %>%
+  mutate_at(vars(Religion, civlibs_fh), as.factor) %>%
+  left_join(drinkage, by = c("location" = "Country")) %>%
+  mutate_at(vars(Group,Age), as.factor)
 
 
 ## these chi-square tests show that all these variables are NOT independent.
 chisq.test(alc.inc.2019$Religion,alc.inc.2019$regime_row_owid)
 chisq.test(alc.inc.2019$Religion,alc.inc.2019$civlibs_fh)
 chisq.test(alc.inc.2019$regime_row_owid,alc.inc.2019$civlibs_fh)
+
+alc.inc.2019
 
 
