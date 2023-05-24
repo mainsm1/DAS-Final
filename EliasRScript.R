@@ -18,15 +18,6 @@ alc.inc.1999 <- data %>%
   filter(sex == "Both" & measure == "Incidence" & cause == "Alcohol use disorders" & year == 1999)
  
 
-  y1999 <- DrugFullDataset %>%
-  filter(year == 1999)
-
-y2009 <- DrugFullDataset %>%
-  filter(year == 2009)
-
-y2019 <- DrugFullDataset %>%
-  filter(year == 2019)
-
 
 # Drinking Age Groups 
 # Burkina Faso is the only 13 y.o.
@@ -44,14 +35,14 @@ y2019 <- DrugFullDataset %>%
 ##do initial analysis with the five categories and then if things look like 
 ## some of the smaller groups are similar you can combine them
 
-drinkage <- mutate_at(drinkage, vars(Age), as.factor)
+drinkage <- mutate_at(drinkage, vars(Group), as.factor)
 ##join partitioned drinkage with huge set
 bigboy <- DrugDataSetFull %>%
-  select(-9) %>%
-  mutate_at(vars(Religion, civlibs_fh), as.factor) %>%
+  select(-18,-19) %>%
   left_join(drinkage, by = c("location" = "Country")) %>%
-  mutate_at(vars(Group,Age), as.factor)
+  select(-19)
 
+boxplot(alc.inc.2019$val~alc.inc.2019$Group, main="By Age Group 2019", ylab="AUD per 100k", xlab='Drinking Age', col='cyan')
 
 ## these chi-square tests show that all these variables are NOT independent.
 chisq.test(alc.inc.2019$Religion,alc.inc.2019$regime_row_owid)
@@ -60,4 +51,6 @@ chisq.test(alc.inc.2019$regime_row_owid,alc.inc.2019$civlibs_fh)
 
 alc.inc.2019
 
-
+model1 <- lm(val ~ Group, data = alc.inc.2019)
+anova(model1)
+summary(model1)
