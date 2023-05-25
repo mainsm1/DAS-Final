@@ -96,3 +96,33 @@ summary(modelALL)
 model <- lm(val ~ Group + Religion + AvgBeerConsump.L + AvgWineConsump.L + AvgSpiritConsump.L + Unemployment, data = alc.inc.2019)
 anova(model)
 summary(model)
+
+
+# ALCOHOL DEATHS dataframes
+alc.death.2019 <- data %>%
+  filter(sex == "Both" & measure == "Deaths" & cause == "Alcohol use disorders" & year == 2019) %>%
+  select(-12,-17)
+
+
+boxplot(alc.death.2019$val~alc.death.2019$Religion, main="Global AUD for Countries by Religion (2019)", ylab="AUD per 100k", xlab='Religious Majority', col='cyan')
+
+
+# alc.death.2019
+
+# this model using all to predict deaths has adj. r^2 only 0.1398
+modelALL.2 <- lm(val ~ Group + Religion + AvgBeerConsump.L + AvgWineConsump.L + AvgSpiritConsump.L + GDPPerCapita + Unemployment + regime_row_owid + civlibs_fh, data = alc.death.2019)
+anova(modelALL.2)
+summary(modelALL.2)
+
+# adj. r^2 .187
+model.2 <- lm(val ~ Religion + AvgBeerConsump.L + AvgWineConsump.L + AvgSpiritConsump.L + Unemployment, data = alc.death.2019)
+anova(model.2)
+summary(model.2)
+
+# spirits consumption ALONE accounts for 17.11% of variability in alc deaths (whoah)
+modelSpirit <- lm(val ~ AvgSpiritConsump.L, data = alc.death.2019)
+anova(modelSpirit)
+summary(modelSpirit)
+
+
+
