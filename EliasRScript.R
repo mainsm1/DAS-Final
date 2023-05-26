@@ -6,8 +6,6 @@ data <- DrugDataSetFull %>%
   filter(year == 2019 | year == 2009 | year == 1999) %>%
   distinct()
 
-colnames(data)[colnames(data)=="Unemployment, total (% of total labor force) (modeled ILO estimate)"] <- "Unemployment"
-
 # ALCOHOL INCIDENCE dataframes
 alc.inc.2019 <- data %>%
   filter(sex == "Both" & measure == "Incidence" & cause == "Alcohol use disorders" & year == 2019) %>%
@@ -101,7 +99,7 @@ summary(model)
 # ALCOHOL DEATHS dataframes
 alc.death.2019 <- data %>%
   filter(sex == "Both" & measure == "Deaths" & cause == "Alcohol use disorders" & year == 2019) %>%
-  select(-12,-17)
+  select(-16)
 
 
 boxplot(alc.death.2019$val~alc.death.2019$Religion, main="Global AUD for Countries by Religion (2019)", ylab="AUD per 100k", xlab='Religious Majority', col='cyan')
@@ -123,6 +121,7 @@ summary(model.2)
 modelSpirit <- lm(val ~ AvgSpiritConsump.L, data = alc.death.2019)
 anova(modelSpirit)
 summary(modelSpirit)
+
 
 
 
