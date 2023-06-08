@@ -31,6 +31,7 @@ library(scales)
 library(ggpattern)
 library(knitr)
 library(kableExtra)
+library(olsrr)
 ```
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
@@ -171,8 +172,27 @@ OWID also provides a dataset for Civil Liberties, which comes from Freedom House
 
 This ensures each factor has a large enough sample size for us to draw meaningful conclusions from the analysis.
 
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(Alc.Inc2019Map) +
+  geom_sf(aes(fill = civlibs_fh)) +
+  scale_fill_manual(values = c("blue", "red", "yellow"))+
+  my_map_theme() + 
+  labs(title = "Relative Score of Civil Liberties By country in 2019", 
+       subtitle = "Based on the assessment and rating by Freedom House (2022). It captures the\nextent of freedom of expression and association, the rule of law, and personal\nautonomy. Lower ratings indicate more liberties.") +
+  guides(fill = guide_legend(title = "Civil Liberties"))
+```
+
 ### Regime Type Data 
 Our World in Data (OWiD) led us to a dataset on the Regimes of the World (RoW), published by the Varieties of Democracy (V-Dem) project from the University of Gothenburg. Every year, the project selects 5 "Country Experts" from a larger list to complete a carefully crafted survey on various themes in the political structure, human freedoms, etc. The team at V-Dem meticulously researches and studies their list of Country Experts each year to see which experts know the most in which fields, using five criteria (expertise, connection, purpose, impartiality, diversity) to score the experts from 1 to 3, where 1 is a high priority recruitment. Then, the team starts recruiting, reaching out to experts from their ranked list until they have 5 from every country, who proceed to complete the survey [22]. Notably, this data is observational and not randomly sampled: the V-Dem team spends much of their resources selecting the Country Experts under the assumption that they are in a better position to accurately assess the state of their country in regard to the survey topics. Out of this huge V-Dem dataset, the RoW data breaks each country's regime into one of four factors: closed autocracy, electoral autocracy, electoral democracy, and liberal democracy. This four-factor variable measuring the political structure and citizen involvement in executive leadership is the one we use in our analysis of alcohol use disorders.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(Alc.Inc2019Map) +
+  geom_sf(aes(fill = regime_row_owid)) + 
+  my_map_theme() + 
+  labs(title = "Regime Type Per Country in 2019") +
+  guides(fill = guide_legend(title = "Type of Regime")) 
+```
+
 
 ### Age-to-Drink Data 
 WHO performed a Global Survey on Alcohol and Health in 2016, which surveyed 194 nations and territories to find the minimum age at which alcohol can legally be purchased off-premises there [16]. This is a different measure from the minimum legal age at which someone can be served alcohol on-premises (although in most nations, these are the same age). The dataset includes these measures for beer, wine, and spirits. However, we elected only to use the drinking age for off-premises sales of beer; the vast majority of nationalities in the dataset use the same age for all three types of alcohol, and including multiple variables in our analysis containing essentially the same information would be unhelpful. Using this data in its raw format, we had a factored categorical variable with 12 levels (representing different drinking ages) from Total ban to None (no minimum age for alcohol purchase). The data wasn't usable in this form, because many of those 12 factors only contained a single (or occasionally a couple) observation. For this reason, we condensed this variable into a four-level factor: Total Ban, Over 18, 18 and Under, None. In this formulation, each level has over 10 observations, allowing for more reasonable use in regression modeling. Notably, the 18 and Under group is by far the largest, as the great majority of countries have legal drinking ages of 18. 
@@ -305,6 +325,7 @@ kableExtra::scroll_box(Can.Lib.Trib)
 #### Alcohol-Use Disorder
 The government regime data shows a clear pattern in the boxplot: the "freer" the country, the higher the AUD incidence tends to be. However, the plot is very similar for Electoral Autocracy and Electoral Democracy, which are indeed not significantly different at 95% confidence with a p-value of 0.6746. Meanwhile, Closed Autocracy differs significantly from all other factors.
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
+boxplot(Alc.Inc2019Map$val ~ Alc.Inc2019Map$regime_row_owid, main="Global AUD for Countries by Regime (2019)", ylab="AUD per 100k", xlab='Religious Majority', col='cyan')
 
 Alc.Regime.Trib <- tribble(
 ~Comparison, ~`Closed Autocracy ~ Electoral Autocracy`, ~`Closed Autocracy ~ Electoral Democracy`, ~`Closed Autocracy ~ Liberal Democracy`,
@@ -409,6 +430,11 @@ ggplot(Regime.Can.Overtime) +
 #### Alcohol-Use Disorder
 Moving on to the minimum legal drinking age data, we quickly found two factors- Under 18 and 18- to not be significantly different. Notably, Over 18 has a spread that contains every other factor, and its interquartile range overlaps entirely with both 18 and Under 18. Tukey's test affirms our conclusions, showing Under 18 and 18 to not be significantly different (at 95% confidence), as well as Over 18 not differing from any factor (except Total ban, which differs significantly from all factors except None).
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Inc2016 <- Alc.Inc.DrugData %>%
+  filter(year == "2016", sex == "Both")
+
+boxplot(Alc.Inc2016$val ~ Alc.Inc2016$AgeToDrink.2016, main="Global AUD for Countries by MLDA (2019)", ylab="AUD per 100k", xlab='Minimum Legal Drinking Age', col='cyan')
+
 Alc.Age.Trib <- tribble(
   ~Comparison, ~`Under 18 ~ 18`, ~`18 ~ Over 18`, ~`Under 18 ~ Over 18`,
     "p-value",          "0.8862",      "0.5296",                "0.992"
@@ -602,8 +628,53 @@ Alc.Rel.Trib <- kableExtra::kable(Alc.Rel.Trib, "html") %>%
   row_spec(0, color = "white", background = "black")
 
 kableExtra::scroll_box(Alc.Rel.Trib)
+
+boxplot(Alc.Inc2019Map$val ~ Alc.Inc2019Map$Religion, main="Global AUD for Countries by Religion (2019)", ylab="AUD per 100k", xlab='Religious Majority', col='cyan')
 ```
 `N=197. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Inc.Islam <- Alc.Inc.DrugData %>%
+  filter(Religion == "Islam", sex == "Both")
+
+Alc.Inc.Islam <- subset(Alc.Inc.Islam, year %in% c(1999, 2009, 2019))
+
+Piechart.Islam.Alc <- Alc.Inc.Islam %>%
+  group_by(year, civlibs_fh) %>%
+  count(civlibs_fh)
+
+
+
+ggplot(Piechart.Islam.Alc, aes(x = "", y = n, fill = civlibs_fh)) +
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar(theta = "y") +
+  theme_void() +
+  facet_grid(. ~year) +
+  scale_fill_manual(values = c("red", "yellow", "grey")) +
+  labs(title = "  Distribution of Civil Liberties Ratings among Islamic Nations\n  in 1999, 2009, and 2019") +
+  guides(fill = guide_legend(title = "Civil Liberties")) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 4)
+
+
+Alc.Inc.Christ <- Alc.Inc.DrugData %>%
+  filter(Religion == "Christianity", sex == "Both")
+
+Alc.Inc.Christ <- subset(Alc.Inc.Christ, year %in% c(1999, 2009, 2019))
+
+Piechart.Christ.Alc <- Alc.Inc.Christ %>%
+  group_by(year, civlibs_fh) %>%
+  count(civlibs_fh)
+
+ggplot(Piechart.Christ.Alc, aes(x = "", y = n, fill = civlibs_fh)) +
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar(theta = "y") +
+  theme_void() +
+  facet_grid(. ~year) +
+  scale_fill_manual(values = c("cyan", "yellow", "red", "grey")) +
+  labs(title = "  Distribution of Civil Liberties Rating among Christian Nations\n  in 1999, 2009, and 2019") +
+  guides(fill = guide_legend(title = "Civil Liberties")) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 4)
+```
 
 #### Cannabis-Use Disorder
 Negative numbers represent the latter religion of each cell having that number more cases while positive numbers represent the former having more cases.  Similarly, CUDs saw a similar trend in that countries whose primary religion is Islam saw a significantly lower rate of CUDs than countries whose primary religion is Christianity, with 34 more cases being reported per 100k people of Christianity than Islam. Similarly, countries of other religious affiliations (Buddhism, Hinduism, etc.) saw significantly higher rates of CUDs than countries that were primarily associated with Islamic beliefs, having 20 more cases on average per 100k. These rates were calculated at three different year intervals: 1999, 2009, and 2019. This was done to examine the change over time among these disorders. The same trend was seen over time. 
@@ -695,8 +766,57 @@ kableExtra::scroll_box(Model2)
 `p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
 
 Checking the model residuals for normality, the Q-Q Plot shows the residuals are nearly normal.
-```{r}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+## Do ANOVA between groups for Drinking Age and Religion to see which subgroups
+## you can combine. Then, do it again with new groups (in a sensible way). Next,
+## after one-hot coding them as binary for multiple regression, select the reference
+## category from each variable to be the one that stands apart from the others.
+## Consider doing this for civil liberties and regime as well. 
+## Also, center consumption variables (subtract of means).
+## Finally, check model for normality conditions.
 
+alc.inc.2019 <- DrugDataSetFull %>% 
+  filter(year == 2019) %>%
+  distinct() %>%
+  filter(sex == "Both" & measure == "Incidence" & cause == "Alcohol use disorders") %>%
+  select(7:11,13:15,17:18)
+
+
+####### NOW FOR ONE-HOT ENCODING AND REGRESSIONS
+alc.inc.2019.binary <- alc.inc.2019 %>%
+  mutate(Islam = (Religion == "Islam")*1,
+         Christianity = (Religion == "Christianity")*1,
+         OtherReligion = (Religion == "Other")*1,
+         AgeSpecific = (AgeToDrink.2016 == "Specified Age")*1,
+         None = (AgeToDrink.2016 == "None")*1,
+         TotalBan = (AgeToDrink.2016 == "Total ban")*1,
+         HighLiberties = (civlibs_fh == "High Liberties")*1,
+         OtherLiberties = (civlibs_fh == "Other")*1,
+         Electoral = (regime_row_owid == "Electoral")*1,
+         LiberalDemocracy = (regime_row_owid == "Liberal Democracy")*1,
+         ClosedAutocracy = (regime_row_owid == "Closed Autocracy")*1)
+
+
+## Dataset tidying for testing
+BINARYDATA <- alc.inc.2019.binary %>% select(1,5:8,10:21) %>% drop_na()
+
+# We want Christianity, Age Specific, Closed Autocracy and High Liberties as 
+# our references.
+model1 <- lm(val ~ . - Christianity - AgeSpecific - ClosedAutocracy - HighLiberties, data = BINARYDATA)
+
+## NOW FOR SOME PLAYING TO FIND A BEST MODEL (highest r^2 with mostly significant)
+model <- lm(val ~ . - val - Christianity - AgeSpecific - ClosedAutocracy - HighLiberties - OtherLiberties - GDPPerCapita - LiberalDemocracy - Unemployment - TotalBan - OtherReligion - None, data = BINARYDATA)
+# This final model has R^2 adj. of 0.3348, and uses all three Consumption variables,
+# Islam, None, and Electoral. 
+
+# log transforming incidences since it helped deaths so much
+
+BINARYDATA <- mutate(BINARYDATA, val1 = log(val))
+modellog <- lm(val1 ~ . - val - Christianity - AgeSpecific - ClosedAutocracy - HighLiberties - OtherLiberties - GDPPerCapita - LiberalDemocracy - Unemployment - TotalBan - OtherReligion - None, data = BINARYDATA)
+
+olsrr::ols_test_normality(modellog)
+
+plot(modellog)
 ```
 
 Testing the residuals using a Kolmogorov-Smirnov test reveals a test statistic of 0.1029 and a p-value of 0.0890 on 90% confidence. Thus, we reject the null hypothesis, and conclude that the residuals are not normally distributed. For this reason, we transformed the vertical axis with a log transformation. This is the new model, with an adjusted R-square of 0.4207:
@@ -723,13 +843,7 @@ kableExtra::scroll_box(Model4)
 `p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
 
 Testing for normality with Kolmogorov-Smirnov, we find a test statistic of 0.076 and p-value 0.3635, concluding we do not have evidence to conclude non-normality on 90% confidence. The quantile plot remains imperfect but is improved from the non-transformed model. Additionally, Cook's Distance reveals there are no influential points of concern. 
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
 
-```
-
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
-
-```
 ## Modeling AUD Deaths 2019
 Next, we repeated this process for the AUD deaths in 2019, finding a model with maximum adjusted R-square 0.1672 and quickly realizing only one predictor was significant.
 
@@ -749,20 +863,67 @@ Model7 <- kableExtra::kable(Model7, "html") %>%
 
 kableExtra::scroll_box(Model7)
 
+alc.death.2019 <- DrugDataSetFull %>% 
+  filter(year == 2019) %>%
+  distinct() %>%
+  filter(sex == "Both" & measure == "Deaths" & cause == "Alcohol use disorders") %>%
+  select(7:11,13:15,17:18)
+
+###### ANOVAS
+
+####### NOW FOR ONE-HOT ENCODING AND REGRESSIONS
+
+alc.death.2019.binary <- alc.death.2019 %>%
+  mutate(Islam = (Religion == "Islam")*1,
+         Christianity = (Religion == "Christianity")*1,
+         OtherReligion = (Religion == "Other")*1,
+         AgeSpecific = (AgeToDrink.2016 == "Specified Age")*1,
+         None = (AgeToDrink.2016 == "None")*1,
+         TotalBan = (AgeToDrink.2016 == "Total ban")*1,
+         HighLiberties = (civlibs_fh == "High Liberties")*1,
+         OtherLiberties = (civlibs_fh == "Other")*1,
+         Electoral = (regime_row_owid == "Electoral")*1,
+         LiberalDemocracy = (regime_row_owid == "Liberal Democracy")*1,
+         ClosedAutocracy = (regime_row_owid == "Closed Autocracy")*1)
+
+
+## Dataset tidying for testing
+BINARYDATA1 <- alc.death.2019.binary %>% select(1,5:8,10:21) %>% drop_na()
+
+# We want Christianity, Age Specific, Closed Autocracy and High Liberties as 
+# our references.
+
+## NOW FOR SOME PLAYING TO FIND A BEST MODEL (highest r^2 with mostly significant)
+modeldeaths <- lm(val ~ AvgSpiritConsump.L, data = BINARYDATA1)
+
+
+### NOW FOR RESIDUAL TESTING AND OUTLIER STUFF WITH DEATHS MODEL
+olsrr::ols_test_normality(modeldeaths)
+
+## 12 is an influential point
+
+### retrying model without Belarus.
+BINARYDATA2 <- BINARYDATA1 %>%
+  slice(-12)
+
+deaths <- lm(val ~ AvgSpiritConsump.L, data = BINARYDATA2)
+olsrr::ols_test_normality(deaths)
+plot(deaths)
+
+## transforming val to see if residuals will normalize
+
+BINARYDATA2 <- BINARYDATA2 %>% mutate(val1 = log(val))
+deaths1 <- lm(val1 ~ AvgSpiritConsump.L + Islam + AvgBeerConsump.L, data= BINARYDATA2)
+olsrr::ols_test_normality(deaths1)
+plot(deaths1)
+
+
 ```
 `p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
 
-Below are the residuals for the AUD 2019 deaths model. In the Kolmogorov-Smirnov test with 95% confidence, we find a test statistic of 0.2395 and p-value 0.0000, therefore rejecting the null hypothesis and concluding that the residuals are not normal.
-
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
-
-```
+In the Kolmogorov-Smirnov test with 95% confidence, we find a test statistic of 0.2395 and p-value 0.0000, therefore rejecting the null hypothesis and concluding that the residuals are not normal.
 
 Analyzing the residuals for outliers, there are three observations of concern: #12, #42, and #91. These correspond to the countries of El Salvador, Belarus, and Mongolia, respectively. Using Cook's Distance to check for influential points, #12 sticks out.
-
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
-
-```
 
 The mean rate of AUD deaths globally for 2019 was 2.59 per 100,000 people. Belarus (#12) had a rate of 21.35. El Salvador (#42) had a rate of 14.76 and Mongolia (91) a rate of 15.77. Removing Belarus from the data does not improve the normality of the residuals : Kolmogorov-Smirnov reveals a test statistic of 0.209 and a p-value of 0.0000 on 95% confidence. However, there are no influential points for the new model fit without Belarus. 
 
@@ -789,16 +950,6 @@ kableExtra::scroll_box(Model8)
 `p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
 
 In the transformed model, the Kolmogorov-Smirnov test has a test-statistic of 0.0429 and a p-value of 0.9506 on 95% confidence, suggesting there is no evidence to conclude the residuals are non-normal. The quantile and Cook's Distance plots affirm this. 
-
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
-
-```
-
-The Q-Q Plot displays much more normal residuals, and the Cook's Distance still reveals several high-leverage points, but there are no influential points. 
-
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
-
-```
 
 # <span style="color: red;"> Discussion</span>
 
