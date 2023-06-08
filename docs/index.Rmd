@@ -1,26 +1,894 @@
 ---
-title: "Lab Name"
-author: "Author Name"
-date: "`r Sys.Date()`"
-output: openintro::lab_report
+title: "Cultural and Economic Differences in Alcohol-Use Disorder and Cannabis-Use Disorder in Different Countries"
+author: "Elias Coppock, Lizzy Daugherty, Rachel Lee, Michael Mains"
+date: "8th June 2023"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+always_allow_html: true
 ---
 
-```{r load-packages, message=FALSE}
+```{r load-packages, message=FALSE, warning=FALSE, echo=FALSE}
 library(tidyverse)
 library(openintro)
+library(plotly)
+library("rnaturalearth")
+library("rnaturalearthdata")
+library(readxl)
+library(readr)
+library(gitcreds)
+library(usethis)
+library(psych)
+library(Hmisc)
+library('corrr')
+library(ggcorrplot)
+library("FactoMineR")
+library("factoextra")
+library(scales)
+library(ggpattern)
+library(knitr)
+library(kableExtra)
 ```
 
-###GSVDCFECFE
-
-### Exercise 1
-
-Insert any text here.
-
-```{r code-chunk-label}
-# Insert code for Exercise 1 here
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+my_map_theme <- function(){
+  theme(panel.background=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank())
+}
 ```
 
-### Exercise 2
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("devtools")
+devtools::install_github("lbusett/insert_table")
+if (!require(knitr, quietly = TRUE)) {
+  install.packages("knitr")
+}
+if (!require(kableExtra, quietly = TRUE)) {
+  install.packages("kableExtra")
+}
+```
 
-...
 
+
+```{r message=FALSE, warning=FALSE, echo = FALSE}
+DrugDataSetFull <- read_rds("https://github.com/mainsm1/DAS-Final/raw/main/DrugDataSetFull.rds")
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+DrugDataSetFullMap <- left_join(world, DrugDataSetFull, by=c('iso_a3' = 'ISO3'))
+
+DrugDataSetFullMap <- DrugDataSetFullMap %>%
+  select(measure, location, year, sex, cause, iso_a3, val, Religion, AgeToDrink.2016, regime_row_owid, civlibs_fh, GDPPerCapita, PovertyProportion, Unemployment, AvgBeerConsump.L, AvgSpiritConsump.L, AvgWineConsump.L, PropAUDTreatment.2008 , geometry) %>%
+  arrange(desc(measure), location, iso_a3, year, sex, cause, val)
+
+Alc.Inc.DrugData <- DrugDataSetFull %>%
+  filter(cause == "Alcohol use disorders", measure == "Incidence")
+
+Alc.Dea.DrugData <- DrugDataSetFull %>%
+  filter(cause == "Alcohol use disorders", measure == "Deaths")
+
+Can.Inc.DrugData <- DrugDataSetFull %>%
+  filter(cause == "Cannabis use disorders", measure == "Incidence")
+
+Alc.Inc1999Map <- DrugDataSetFullMap %>%
+  filter(cause == "Alcohol use disorders", measure == "Incidence", sex == "Both", year == "1999")
+
+Alc.Inc2009Map <- DrugDataSetFullMap %>%
+  filter(cause == "Alcohol use disorders", measure == "Incidence", sex == "Both", year == "2009")
+
+Alc.Inc2019Map <- DrugDataSetFullMap %>%
+  filter(cause == "Alcohol use disorders", measure == "Incidence", sex == "Both", year == "2019")
+
+Alc.Dea1999Map <- Alc.Dea.DrugData %>%
+  filter(sex == "Both", year == "1999")
+
+Alc.Dea2009Map <- Alc.Dea.DrugData %>%
+  filter(sex == "Both", year == "2009")
+
+Alc.Dea2019Map <- Alc.Dea.DrugData %>%
+  filter(sex == "Both", year == "2019")
+
+Can.Inc1999Map <- DrugDataSetFullMap %>%
+  filter(cause == "Cannabis use disorders", measure == "Incidence", sex == "Both", year == "1999")
+
+Can.Inc2009Map <- DrugDataSetFullMap %>%
+  filter(cause == "Cannabis use disorders", measure == "Incidence", sex == "Both", year == "2009")
+
+Can.Inc2019Map <- DrugDataSetFullMap %>%
+  filter(cause == "Cannabis use disorders", measure == "Incidence", sex == "Both", year == "2019")
+```
+
+# <span style="color: red;"> Abstract</span>
+  Alcohol-use disorders (AUD) and cannabis-use disorders (CUD) are prevalent substance-use disorders with significant implications for public health and individual well-being. This paper aims to investigate the influence of societal, economic, and governmental factors on the rates of AUD and CUD among different countries. The question guiding this research is: 
+
+### <span style="color: green;">How do Societal Factors and Cross-Cultural differences affect the rates of Alcohol-Use Disorder and Cannabis-Use Disorder in different nations?</span>
+
+To address this question, three broad categories of variables were considered. These categories were legislative/policy differences, economic differences, and social differences. Each category can then be broken up into the specific variables that were taken into consideration. Legislative/policy differences encompass government type, legal age to consume the substance, availability of treatment for substance-use disorders, and civil liberties. It was hypothesized that countries with more freedoms and fewer regulations pertaining to substance use will exhibit higher rates of AUD and CUD. Economic differences can be broken down into gross domestic product (GDP) per capita, poverty rates, and unemployment rates. It was hypothesized that as a country’s economic strength increases, so does the prevalence of AUD and CUD. Social differences can be broken down into major religions and the prevalence of specific types of alcohol. It was hypothesized that different religious affiliations and alcohol types would influence the rates of AUD and CUD. This research utilizes various datasets from different sources, which were combined into one dataset for analysis. This paper aims to contribute to the understanding of the different factors influencing the rates of AUD and CUD in different countries. 
+
+Keywords: alcohol-use, substance-use, cannabis, disorder, AUD, CUD  
+
+# <span style="color: red;">Introduction</span>
+Alcohol-use disorders (AUD) and cannabis-use disorders (CUD) are two prevalent and clinically significant substance-use disorders (SUD) that have garnered considerable attention due to their impact on public health and individual well-being. Numerous studies have been published over time on the long-term effects of substance use and how they negatively affect health outcomes. Some of these negative health outcomes include developing high blood pressure, heart diseases, cancers, weakening of the immune system, and many more [3]. With so many negative health outcomes associated with different kinds of substance-use disorders, it is important to examine what factors increase or decrease the rates of AUDs and CUDs. In doing this, we hope to examine why certain countries may have higher or lower rates of substance use disorders than others, and what specific differences between countries may be attributed to these discrepancies. Our research question is: 
+	__How do Societal Factors and Cross-Cultural differences affect the rates of Alcohol-Use Disorder and Cannabis-Use Disorder in different nations?__
+
+### Purpose of Research
+
+These prevalent substance-use disorders have garnered considerable attention due to their negative health outcomes, including high blood pressure, heart diseases, cancers, and weakened immune systems. Throughout this presentation, we will explore the factors that contribute to varying rates of AUDs and CUDs among countries, shedding light on the specific differences underlying these discrepancies."
+
+In only 2019, the NIH reported that alcohol-related deaths accounted for 2.07 million male deaths and 374 thousand female deaths globally [a].
+
+In 2020 (the first year of the COVID pandemic) alcohol sales increased by 2.9%, which is the largest annual increase in the last 50 years [b]. Although this presentation does not include COVID era data, it still gives reliable indicators as to AUD trends. 
+
+2019 studies from the CDC estimate 3/10 people who regularly use cannabis have CUD [c]. 
+
+### Defining AUD and CUD
+
+As described by the most recent Diagnostic and Statistical Manual (DSM-V), which is what psychologists and doctors often refer to when determining whether someone fits the criteria of having a specific mental disorder [2]. The DSM-V describes 11 specific statements that are used as a guide to whether someone can be identified as someone with an AUD or a CUD, where agreement with 2 of the statements marks the presence of the disorder [2]. The prompts include statements like: 
+	
+   1. Having a craving, or a strong desire or urge to use alcohol/cannabis.
+   2. Continued alcohol/cannabis use despite having persistent or recurrent social or interpersonal problems caused or exacerbated by the effects of alcohol. 
+   3. Recurrent alcohol/cannabis use in situations in which it is physically hazardous. 
+   4. Alcohol use is continued despite knowledge of having a persistent or recurrent physical or psychological problem that is likely to have been caused or        exacerbated by alcohol/cannabis. 
+
+### Factors of Society
+With a solid understanding of what makes up a substance-use disorder, we can begin to theorize potential differences among nations that may affect rates of SUDs. For the purposes of this project, we have divided our variables into three broad categories.
+
+   1. Legislative/Policy Differences
+   2. Economic Differences
+   3. Social Differences
+   
+Legislative/Policy differences refer to factors that are controlled by the government of a nation. This includes the types of governments a nation associates with, specific policies about certain substances, availability of treatment for SUDs, and the level of freedom individuals in a nation’s population feel. We hypothesize that the more freedoms people have, the more they will indulge in alcohol use and cannabis use. Therefore, countries whose citizens have more freedoms and fewer regulations against the development of SUD will develop AUDs and CUDs at higher rates. 
+
+Economic differences refer to factors that can be used to define the financial stability of a country. These include gross domestic product (GDP) per capita, the ratio of population under the international poverty line ($2.15), and the ratio of people who are unemployed, but looking for/able to work. We hypothesize that as the economic strength of a nation increases, the rate of AUD/CUD will also increase. This is for a similar reason as the last hypothesis in that if people are given the ability to, and are financially able to drink or smoke, they will. Therefore, we hypothesize that countries with higher GDPs and lower rates of poverty and unemployment will have higher rates of AUDs/CUDs. 
+
+Social Differences refer to factors that are culturally significant and withheld by the people of a population. Examples of these include national religions that a country primarily associates with and the prevalence of specific kinds of alcohol (beer, wine, and spirits). We hypothesize that there will be a difference in AUD/CUD rates by different religions and alcohol prevalence. 
+
+
+# <span style="color: red;">Methods</span>
+The following section includes basic information about their collection, calculations, and manipulations as they are sized into our dataset. Many of the datasets gathered for his research were from different sources, so we thought it was important to distinguish how we obtained this data and how reliable it is in explaining its specific concentration.
+
+## Global Health Data (GHD)
+The Global Health Data (GHD) is self-proclaimed as the world’s most comprehensive catalog of surveys, censuses, vital statistics, and other health-related data. We ran across this dataset looking for data about substance-use disorders. This data is pulled together by the coordination of two separate independent companies: The Global Burden of Disease and the Institute for Health Metrics and Evaluation. The Global Burden of Disease (GBD) is a global research program that provides quantifiable information about health issues regarding hundreds of different diseases, injuries, and other risk factors that may influence overall health [7]. The GBD collects data on different sexes and years from more than 9,000 researchers in more than 162 countries and territories about health issues. The Institute for Health Metrics and Evaluation (IHME) is an independent global health research center run by the University of Washington. The IHME works with over 8,000 scientists, government officials, and medical professionals to provide accurate data on many diseases and other risk factors for mortality [10]. Along with that, the IHME uses surveys and questionnaires about the use and prevalence of drugs and medical treatments, and autopsy experiences, along with biometric data about each household. We pulled a series of variables from this dataset, including different measures, locations, years, sexes, and substance-use disorders. For the measures, we looked at deaths and incidences as a rate, meaning that it would look at both deaths and incidences per one hundred thousand people in a specific country. Specifically, we looked at rates of alcohol-use disorder (AUD) and cannabis-use disorder (CUD) from 1999-2019 among different sexes in different countries. For the most part, we primarily looked at the years 1999, 2009, 2019 as they were good indicators of the change that occurred over time. 
+
+## World Data
+Natural Earth is a public data website that keeps data about different countries and land masses, including name, type, and geography that allow for a computer-generated image of the country. The data for this could be installed as a CSV and loaded into RStudio. From this dataset, we only used data about the international recognition codes and the geographies, which we just selected and left_joined to our original dataset. 
+
+## Legislative/Policy Sources
+
+### Civil Liberties Data 
+OWID also provides a dataset for Civil Liberties, which comes from Freedom House, an organization that rates and scores countries based on their relative liberties for citizens. Similar to V-Dem, Freedom House chooses a team of advisors and researchers to study each country or territory and report on their governing structure, rule of law, personal freedoms, etc. These reports are reviewed by "expert advisors and regional specialists" before being published in the data. The dataset for each country's civil liberties rating contains a discrete ranking from 1 to 7, with 1 being the freest and 7 the least free. Again, in the same fashion as with the RoW data, we factored this variable into smaller quantities due to the relatively small sample sizes for certain liberties ratings: 
+
+1-2 "high liberties"
+
+3-5 "moderate liberties"
+
+6-7 "low liberties." 
+
+This ensures each factor has a large enough sample size for us to draw meaningful conclusions from the analysis.
+
+### Regime Type Data 
+Our World in Data (OWiD) led us to a dataset on the Regimes of the World (RoW), published by the Varieties of Democracy (V-Dem) project from the University of Gothenburg. Every year, the project selects 5 "Country Experts" from a larger list to complete a carefully crafted survey on various themes in the political structure, human freedoms, etc. The team at V-Dem meticulously researches and studies their list of Country Experts each year to see which experts know the most in which fields, using five criteria (expertise, connection, purpose, impartiality, diversity) to score the experts from 1 to 3, where 1 is a high priority recruitment. Then, the team starts recruiting, reaching out to experts from their ranked list until they have 5 from every country, who proceed to complete the survey. Notably, this data is observational and not randomly sampled: the V-Dem team spends much of their resources selecting the Country Experts under the assumption that they are in a better position to accurately assess the state of their country in regard to the survey topics. Out of this huge V-Dem dataset, the RoW data breaks each country's regime into one of four factors: closed autocracy, electoral autocracy, electoral democracy, and liberal democracy. This four-factor variable measuring the political structure and citizen involvement in executive leadership is the one we use in our analysis of alcohol use disorders.
+
+### Age-to-Drink Data 
+WHO performed a Global Survey on Alcohol and Health in 2016, which surveyed 194 nations and territories to find the minimum age at which alcohol can legally be purchased off-premises there [16]. This is a different measure from the minimum legal age at which someone can be served alcohol on-premises (although in most nations, these are the same age). The dataset includes these measures for beer, wine, and spirits. However, we elected only to use the drinking age for off-premises sales of beer; the vast majority of nationalities in the dataset use the same age for all three types of alcohol, and including multiple variables in our analysis containing essentially the same information would be unhelpful. Using this data in its raw format, we had a factored categorical variable with 12 levels (representing different drinking ages) from Total ban to None (no minimum age for alcohol purchase). The data wasn't usable in this form, because many of those 12 factors only contained a single (or occasionally a couple) observation. For this reason, we condensed this variable into a four-level factor: Total Ban, Over 18, 18 and Under, None. In this formulation, each level has over 10 observations, allowing for more reasonable use in regression modeling. Notably, the 18 and Under group is by far the largest, as the great majority of countries have legal drinking ages of 18. 
+
+### Alcohol-Use Treatment Availability
+Similar to the other datasets within the OWID website, data about the treatment percentile of the population was gathered. That is, what percent of the population who has an AUD is getting treatment for their disorder [12]. This data is based on estimates and was gathered by OWID from the World Health Organization (WHO). This data was gathered by WHO through national authorities of specific countries through the WHO Global Survey on Alcohol and Health [12]. Because of the specificity of this data, it was only gathered in 2008, which is why it is challenging to make inferences on the importance of this variable. Unlike the other datasets by OWID, there was not a lot of tidying of the data to be done. This one we could simply select the specific variables we wanted and just left_joined it from there, good to go!
+
+## Economic Data
+
+### GDP Data 
+The World Bank Organization is an institution that provides financial support to developing countries. The World Bank Group (WBG) is funded by different member countries of the United Nations with the primary goals of resolving extreme poverty and promoting prosperity among nations [14]. In order for the WBG to properly allocate funds to different developing countries, they have to collect data on different aspects of a specific country’s economy, including poverty rate, homelessness rates, and gross domestic product (GDP). These bits of information are gathered from World Bank national account data and OECD National Accounts data files. GDP is a commonly used measure of accurately quantifying a country’s economic stability. The GDP measure we chose to use was the sum of gross value added by all the resident producers in the economy, plus any property tax and minus any subsidies not included in the value of the products [9]. With this value representing the GDP of a specific nation, we divide that by the midyear population to get the GDP per capita. This GDP per capita variable was stored in the currency of US dollars. It is also important to note how these values were calculated without making deductions for depreciation and degradation of natural resources [9]. The dataset is very full with little to no NA values. The original dataset was formatted in a way that each year was its own column, and each country was its own row. To fix this to match the format of our original dataset, we used a pivot_longer that gave every country the same number of rows as there were years of data for them. From there, it was a simple left_join to combine those datasets. 
+
+### Poverty Data
+Similarly, to the previous dataset, the WBG supplied us with a dataset about poverty rates in different nations over time. Data about poverty was gathered by primary household survey data from government statistical agencies and World Bank country departments [11]. Since one of the main goals of the WBG is resolving and understanding poverty, you would expect them to have comprehensive data on this issue. However, with such a complex issue as poverty, it is hard to accurately depict poverty among different countries over time. Thus, this data does have many NA values for a lot of the countries over time, but it is still a relevant indicator of economic stability within a country that could provide to be important when compared to rates of AUD and CUD. This poverty data represents the ratio of the population (in each specific country and year) that would be under the international poverty line of $2.15. Because of the changes in the purchasing power parity (PPP) exchange rate, we cannot compare the poverty rates of different years to each other. The original data was formatted in a way similar to the data above, which saw every year as its own column and each country as its own row. To fix this to work with our primary dataset, we used a pivot_longer to make the years into rows. Along with that, we cut the year range down to only years after 1999, since that was the earliest year our original dataset went to. 
+
+### Unemployment Data 
+Following the same trend, this dataset was originally found on the WBG website. Originally, this data was gathered by the International Labour Organization (ILO), a specialized agency that works under the surveillance of the UN to help improve labor statistics. The ILO gathers labor data through a series of methods, including official estimates, administrative sources, household surveys, national accounts, and more [4]. The unemployment data measures the total share of the labor force without work but is available/seeking work [13]. One limitation of this data is that the survey data does not fully consider the complexities of some areas of work. For instance, individuals working in agriculture may make the data more skewed during certain seasons depending on what they are growing. Regardless, we believed this data would be useful, in conjunction with the GDP and poverty data, to analyze the economic status within a country and how that affects the rates of AUD/CUD. This data, like the previous two, had to be reformatted using the pivot_longer and filter functions to only include years after 1999. 
+
+## Social Data
+
+### Religion Data 
+When thinking about what factors may predict the amount of alcohol use disorders, we predicted that religion would play a role. Following this idea, we searched for a dataset on the major religion of each country. We were unable to find one dataset that had all, or a majority of the countries. To combat this issue, we used the dataset from Every Country in the World which had collected data on 193 countries. We then used datahub.io to fill in the missing countries. The data from EveryCountryInTheWorld was collected in 2023, so we matched the year for the countries pulled from datahub.io. Regarding the specific religions included in the data, the data contained Islam, Christianity, Buddhism, Hindu, Judaism, Shintoism, Muslim, Folk, and None. As some religions only occurred once or twice in the dataset and were therefore not frequent enough to provide enough insight, we ended up combining some religions into one category. The categories became Islam, Christianity, and Other. It is important to note that this dataset only looks at the predominant religion in each country, so it does not look at each individual in the country, so we cannot account for all the variance in the data. [6]
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(Alc.Inc2019Map) +
+  geom_sf(aes(fill = Religion)) +
+  scale_fill_manual(values = c("red2", "green2", "tan")) +
+  my_map_theme() + 
+  labs(title = "Primary Religion of Each Country in 2019", 
+       subtitle = "Shows the Primary Religion of each Country.") +
+  guides(fill = guide_legend(title = "Religion")) +
+  theme(legend.key.width = unit(1, "cm"))
+```
+
+
+### Alcohol-Type Consumption Data
+In trying to predict incidences and deaths resulting from alcohol use disorder, we hypothesized that the quantity of alcohol consumed would be a related factor. OWID led us to the World Health Organization's (WHO) and Global Health Observatory (GHO), which records data on the average alcohol consumption per capita for countries and territories, measured in liters of pure alcohol per person per year, for three types of alcohol: beer, wine, and spirits. This means less concentrated alcoholic substances, such as beer and wine, follow a conversion chart into liters of pure alcohol (details of the conversion can be found here). To find the average per capita, GHO takes the cumulative sum for each country, divided by its population. Notably, this is unlikely to be an effective measure of the typical observation because alcohol consumption is likely to be skewed, as some people do not drink at all. For this reason, a median would be more accurate, but we believe the mean still provides indicative information about alcohol use disorders, so we chose to consider it in our analysis. Back to the data collection, these metrics come only from measurable alcohol consumption- that of bought, sold, and produced alcohol- and cannot account for at-home, personal brewing/distilling. We used this data as it is, with no mutations or adjustments. Because the data is already population-adjusted by GHO, it won't simply be higher for larger countries and lower for smaller countries, so the information provided from the variables will be useful for understanding AUD patterns at the individual level within countries. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+AlcyWalky <- DrugDataSetFullMap
+
+AlcyWalky <- subset(AlcyWalky, year %in% c(1999, 2009, 2019))
+
+AlcyWalky <- AlcyWalky %>%
+  filter(sex == "Both", cause == "Alcohol use disorders", measure == "Incidence")
+
+AlcyWalky$highest_alcohol_type <- NA
+
+for (i in 1:nrow(AlcyWalky)) {
+  
+  if (is.na(AlcyWalky$AvgSpiritConsump.L[i]) & is.na(AlcyWalky$AvgBeerConsump.L[i]) & is.na(AlcyWalky$AvgWineConsump.L[i])){
+    next
+  }
+  if (AlcyWalky$AvgSpiritConsump.L[i] > AlcyWalky$AvgBeerConsump.L[i] & AlcyWalky$AvgSpiritConsump.L[i] > AlcyWalky$AvgWineConsump.L[i]) {
+    AlcyWalky$highest_alcohol_type[i] <- "Spirits"
+  }
+  else if (AlcyWalky$AvgBeerConsump.L[i] > AlcyWalky$AvgSpiritConsump.L[i] & AlcyWalky$AvgBeerConsump.L[i] > AlcyWalky$AvgWineConsump.L[i]){
+    AlcyWalky$highest_alcohol_type[i] <- "Beer"
+  }
+  else{
+    AlcyWalky$highest_alcohol_type[i] <- "Wine"
+  }
+}
+AlcyWalky2019 <- AlcyWalky %>%
+  filter(year == 2019)
+
+ggplot(AlcyWalky2019) +
+  geom_sf(aes(fill = highest_alcohol_type)) +
+  scale_fill_manual(values = c("goldenrod", "lightcyan", "firebrick"))+
+  my_map_theme() + 
+  labs(title = "Highest Average Consumed Alcohol Type by Country in 2019", 
+       subtitle = "There are 104 countries who primarily drink beer, 52 who primarily drink\nspirits, and 29 who primarily drink wine.") +
+  guides(fill = guide_legend(title = "Type of Alcohol"))
+```
+
+
+# <span style="color: red;">Results</span>
+In seeking to create a model for predicting rates of AUD by country, we began with an initial analysis of our individual variables. Many of our variables are categorical, factored, variables, which makes it important to understand the relationships between groups within each variable before trying to look at interactions between variables. Much of the analysis was completed by using ANOVAs and Pearsons correlation coefficient to determine the relationships between the variables and AUD/CUD rates. 
+
+## Legislative/Policy Differences in Substance-Use Disorders
+
+### Civil Liberties
+
+#### Alcohol-Use Disorder
+The civil liberties data contains High, Moderate, and Low liberties. Tukey's test shows no evidence of a difference between Moderate and Low, but strong evidence that there is a difference between both of those with High liberties. Negative numbers represent the latter liberty label of each cell having that number more cases while positive numbers represent the former having more cases. 
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Lib.Trib <- tribble(
+~`Year`, ~`Low-Moderate`, ~`Moderate-High`, ~`Low-High`,
+1999,        114.3,       "-205.8**",  "-320.1**",
+2009,        112.2,      "-261.0***", "-373.2***",
+2019,         33.8,      "-254.2***",  "-288.0**"
+)
+
+
+Alc.Lib.Trib <- kableExtra::kable(Alc.Lib.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Lib.Trib)
+```
+`N=187. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+
+#### Cannabis-Use Disorder
+Similar to AUDs, countries with higher amounts of liberties had significantly higher rates of CUDs than countries with moderate and low amounts of liberties. Negative numbers represent the latter Liberty Score of each cell having that number more cases while positive numbers represent the former having more cases. 
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Can.Lib.Trib <- tribble(
+ ~`Year`, ~`Low-Moderate`, ~`Moderate-High`, ~`Low-High`,
+   1999,           6.5,       "-42.6***",  "-49.1***",
+   2009,           6.2,       "-37.5***",  "-43.7***",
+   2019,           5.8,       "-36.1***",  "-42.1***"
+  )
+Can.Lib.Trib <- kableExtra::kable(Can.Lib.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Can.Lib.Trib)
+
+```
+`N=187. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+### Regime Type 
+
+#### Alcohol-Use Disorder
+The government regime data shows a clear pattern in the boxplot: the "freer" the country, the higher the AUD incidence tends to be. However, the plot is very similar for Electoral Autocracy and Electoral Democracy, which are indeed not significantly different at 95% confidence with a p-value of 0.6746. Meanwhile, Closed Autocracy differs significantly from all other factors.
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+Alc.Regime.Trib <- tribble(
+~Comparison, ~`Closed Autocracy ~ Electoral Autocracy`, ~`Closed Autocracy ~ Electoral Democracy`, ~`Closed Autocracy ~ Liberal Democracy`,
+    "p-value",                                   "0.0406*",                                   "0.0039**",                                     "0.0000***"
+  )
+
+Alc.Regime.Trib <- kableExtra::kable(Alc.Regime.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Regime.Trib)
+
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+
+Negative numbers represent the latter regime of each cell having that number more cases while positive numbers represent the former having more cases. 
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Regime.2.Trib <- tribble(
+  ~Year, ~`Electoral Autocracy ~ Closed Autocracy`, ~`Electoral Democracy ~ Closed Autocracy`, ~`Liberal Democracy ~ Closed Autocracy`,
+  1999,                                  "80.5",                                 "212.3",                            "474.9***",
+  2009,                                 "147.3",                                "279.9*",                            "482.5***",
+  2019,                                "260.3*",                               "344.0**",                            "504.4***"
+  )
+
+Alc.Regime.2.Trib <- kableExtra::kable(Alc.Regime.2.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Regime.2.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Regime.Alc.Overtime <- Alc.Inc.DrugData %>%
+  filter(measure == "Incidence", sex == "Both") %>%
+  group_by(year, regime_row_owid) %>%
+  summarise('Mean Estimated Number of People with a AUD Per 100k' = mean(val))
+
+ggplot(Regime.Alc.Overtime) +
+  geom_line(aes(year, `Mean Estimated Number of People with a AUD Per 100k`, color = regime_row_owid), size = 2) +
+  labs(title = "Mean Rate of Alcohol-Use Disorder Incidences by Regime type\novertime, regardless of sex, per 100k people", 
+       subtitle = "Based on estimates from the Global Burden of Data (GBD)",
+       color = "Regime Type ") +
+  my_map_theme() +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 12)) +
+  scale_color_manual(values = c("red", "salmon3", "pink", "purple", "grey"))
+```
+
+#### Cannabis-Use Disorder
+A similar trend was seen in cannabis as seen in alcohol, as citizens of Liberal Democracy had significantly higher rates of CUDs when compared to all other types of government styles. Negative numbers represent the latter regime of each cell having that number more cases while positive numbers represent the former having more cases. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Can.Regime.2.Trib <- tribble(
+  ~Year, ~`Liberal Democracy ~ Electoral Autocracy`, ~`Liberal Democracy ~ Electoral Democracy`, ~`Liberal Democracy ~ Closed Autocracy`,
+  1999,                                "51.8***",                                "39.4***",                             "51.3***",
+  2009,                                "45.7***",                                "36.2***",                             "45.3***",
+  2019,                                "46.3***",                                "41.3***",                             "49.7***"
+  )
+
+Can.Regime.2.Trib <- kableExtra::kable(Can.Regime.2.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Can.Regime.2.Trib)
+
+```
+`N=167. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Regime.Can.Overtime <- Can.Inc.DrugData %>%
+  filter(measure == "Incidence", sex == "Both") %>%
+  group_by(year, regime_row_owid) %>%
+  summarise('Mean Estimated Number of People with a CUD Per 100k' = mean(val))
+
+ggplot(Regime.Can.Overtime) +
+  geom_line(aes(year, `Mean Estimated Number of People with a CUD Per 100k`, color = regime_row_owid), size = 2) +
+  my_map_theme() +
+  labs(title = "Mean Rate of Cannabis-Use Disorder Incidences by Regime type\novertime, regardless of Age or Sex, per 100k people", 
+       subtitle = "Based on estimates from the Global Burden of Data (GBD)",
+       ylab("Incidences of CUD (per 100k)"),
+       color = "Regime Type ") +
+  theme(axis.text.x = element_text(face = "bold", size  = 12),
+        axis.text.y = element_text(face = "bold", color = "black", size = 12)) +
+  scale_color_manual(values = c("red", "salmon3", "pink", "purple", "grey"))
+```
+
+### Age to Drink
+#### Alcohol-Use Disorder
+Moving on to the minimum legal drinking age data, we quickly found two factors- Under 18 and 18- to not be significantly different. Notably, Over 18 has a spread that contains every other factor, and its interquartile range overlaps entirely with both 18 and Under 18. Tukey's test affirms our conclusions, showing Under 18 and 18 to not be significantly different (at 95% confidence), as well as Over 18 not differing from any factor (except Total ban, which differs significantly from all factors except None).
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Age.Trib <- tribble(
+  ~Comparison, ~`Under 18 ~ 18`, ~`18 ~ Over 18`, ~`Under 18 ~ Over 18`,
+    "p-value",          "0.8862",      "0.5296",                "0.992"
+  )
+
+Alc.Age.Trib <- kableExtra::kable(Alc.Age.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Age.Trib)
+```
+Due to the high p-values on all the central ranges with age, we combined all three factors into one: Age Specific. This factor contains all countries except those with None and Total ban for drinking age. Despite a high p-value of 0.9561 indicating no significant difference between None and Total ban, we did not collapse these, because they are so fundamentally different as categories. The new Age Specific factor differs significantly from both other factors, shown by the Tukey's test:
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Age2.Trib <- tribble(
+  ~Comparison, ~`None ~ Age Specific`, ~`Age Specific ~ Total ban`, ~`None ~ Total ban`,
+    "p-value",                "0.0029",                      "0.0002",             "0.7647"
+  )
+
+Alc.Age2.Trib <- kableExtra::kable(Alc.Age2.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Age2.Trib)
+```
+### AUD Treatment Rate
+Since this applies to Alcohol-Use Disorder Treatment rates, we will not be analyzing Cannabis here. Since there was only data regarding the year 2008 in this dataset, we only wanted to compare the rates of AUD in that specific year to see if there was a correlation between them. With such little amounts of data in this area, after running the correlation test, we found that AUD treatment rate was weakly, negatively correlated with AUD rate per 100k, with a correlation coefficient of -0.218 (p = 0.2). 
+
+
+## Economic Differences in Substance-Use Disorders 
+In comparing these quantitative, non-discrete variables, we used a Pearson’s product-moment correlation test that would determine the correlation of the data between two variables. A number farther away from 0 represented the fact that there was a stronger correlation between the two variables.
+
+### GDP
+
+#### Alcohol-Use Disorder
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.GDP.Trib <- tribble(
+  ~Year, ~`Degrees of Freedom`, ~`Correlation Coefficient`,                  ~`Overall Relationship`,
+  1999,                181,                 "0.178*", "Very Weak Positive (↑GDP, ↑AUD Rate)",
+  2009,                192,                "0.210**",                       "Weak Positive (↑GDP, ↑AUD Rate)",
+  2019,                190,                "0.231**",                        "Weak Positive (↑GDP, ↑AUD Rate)"
+  )
+
+Alc.GDP.Trib <- kableExtra::kable(Alc.GDP.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.GDP.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+#### Cannabis-Use Disorder
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Can.GDP.Trib <- tribble(
+  ~Year, ~`Degrees of Freedom`, ~`Correlation Coefficient`,                   ~`Overall Relationship`,
+  1999L,                181L,               "0.479***",  "Moderate Positive (↑ GDP, ↑CUD Rate)",
+  2009L,                192L,               "0.448***", "Moderate Positive (↑ GDP, ↑ CUD Rate)",
+  2019L,                190L,               "0.461***", "Moderate Positive (↑ GDP, ↑ CUD Rate)"
+  )
+
+Can.GDP.Trib <- kableExtra::kable(Can.GDP.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Can.GDP.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+### Poverty
+
+#### Alcohol-Use Disorder
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Pov.Trib <- tribble(
+  ~Year, ~`Degrees of Freedom`, ~`Correlation Coefficient`,                                   ~`Overall Relationship`,
+  1999L,                 33L,                 "-0.218",      "Weak Negative (↑ Poverty Proportion, ↓ AUD Rate)",
+  2009L,                 75L,              "-0.373***",      "Weak Negative (↑ Poverty Proportion, ↓ AUD Rate)",
+  2019L,                 66L,                 "-0.154", "Very Weak Negative (↑ Poverty Proportion, ↓ AUD Rate)"
+  )
+
+Alc.Pov.Trib <- kableExtra::kable(Alc.Pov.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Pov.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+#### Cannabis-Use Disorder
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Can.Pov.Trib <- tribble(
+  ~Year, ~`Degrees of Freedom`, ~`Correlation Coefficient`,                                   ~`Overall Relationship`,
+  1999L,                 33L,               "-0.450**",  "Moderate Negative (↑ Poverty Proportion, ↓ AUD Rate)",
+  2009L,                 75L,               "-0.312**",      "Weak Negative (↑ Poverty Proportion, ↓ AUD Rate)",
+  2019L,                 66L,                 "-0.172", "Very Weak Negative (↑ Poverty Proportion, ↓ AUD Rate)"
+  )
+
+Can.Pov.Trib <- kableExtra::kable(Can.Pov.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Can.Pov.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+### Unemployment
+
+#### Alcohol-Use Disorder
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Unemp.Trib <- tribble(
+  ~Year, ~`Degrees of Freedom`, ~`Correlation Coefficient`,                               ~`Overall Relationship`,
+  1999L,                178L,                 "0.239*",        "Weak Positive (↑ Unemployment, ↑ AUD Rate)",
+  2009L,                178L,                 "0.184*",        "Weak Positive (↑ Unemployment, ↑ AUD Rate)",
+  2019L,                178L,                   "0.02", "Very Weak Positive ((↑ Unemployment, ↑ AUD Rate))"
+  )
+
+Alc.Unemp.Trib <- kableExtra::kable(Alc.Unemp.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Unemp.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+#### Cannabis-Use Disorder 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Can.Unemp.Trib <- tribble(
+  ~Year, ~`Degrees of Freedom`, ~`Correlation Coefficient`,                              ~`Overall Relationship`,
+  1999L,                178L,                   -0.001,  "Very Weak Negative (↓ Unemployment, ↑ CUD Rate)",
+  2009L,                178L,                     0.02,  "Very Weak Positive (↑ Unemployment, ↑ CUD Rate)",
+  2019L,                178L,                   -0.082, "Very Weak Negative (↓  Unemployment, ↑ CUD Rate)"
+  )
+
+Can.Unemp.Trib <- kableExtra::kable(Can.Unemp.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Can.Unemp.Trib)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+
+## Social Differences in Substance-Use Disorders
+
+### Religion
+
+#### Alcohol-Use Disorder
+With Religion, we quickly found a large difference in mean AUD between all three factors. However, performing a Tukey's HSD test at a 95% confidence level, we only found Christianity and Islam significantly different.Negative numbers represent the latter Religion of each cell having that number more cases while positive numbers represent the former having more cases.
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Alc.Rel.Trib <- tribble(
+  ~Year, ~`Islam ~ Christianity`, ~`Other ~ Christianity`, ~`Other ~ Islam`,
+  1999L,           "-399.4***",             "-282.1*",          117.3,
+  2009L,           "-388.3***",             "-226.9*",          161.4,
+  2019L,           "-391.2***",             "-232.8*",          158.4
+  )
+
+Alc.Rel.Trib <- kableExtra::kable(Alc.Rel.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Alc.Rel.Trib)
+```
+`N=197. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+#### Cannabis-Use Disorder
+Negative numbers represent the latter religion of each cell having that number more cases while positive numbers represent the former having more cases.  Similarly, CUDs saw a similar trend in that countries whose primary religion is Islam saw a significantly lower rate of CUDs than countries whose primary religion is Christianity, with 34 more cases being reported per 100k people of Christianity than Islam. Similarly, countries of other religious affiliations (Buddhism, Hinduism, etc.) saw significantly higher rates of CUDs than countries that were primarily associated with Islamic beliefs, having 20 more cases on average per 100k. These rates were calculated at three different year intervals: 1999, 2009, and 2019. This was done to examine the change over time among these disorders. The same trend was seen over time. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Can.Rel.Trib <- tribble(
+  ~Year, ~`Islam ~ Christianity`, ~`Other ~ Christianity`, ~`Other ~ Islam`,
+  1999L,            "-36.4***",                 -15.4,        "21.0*",
+  2009L,            "-36.6***",                 -15.3,        "21.4*",
+  2019L,            "-34.1***",                 -12.5,       "21.7**"
+  )
+
+Can.Rel.Trib <- kableExtra::kable(Can.Rel.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Can.Rel.Trib)
+```
+`N=197. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+### Alcohol-Type Consumed
+After Pearson’s Correlation Coefficient test between AUD rate and quantity of Alcohol consumed, we deduced that beer had the highest correlation with AUDs in 1999, 2009, and 2019 when compared to spirits and wine***.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Cons.Alc.Trib <- tribble(
+  ~Year, ~`Spirits ~ Beer`, ~`Wine ~ Beer`, ~`Wine ~ Spirits`,
+  1999L,         "-74.1",        -15.4,         "21.0*",
+  2009L,      "-36.6***",        -15.3,         "21.4*",
+  2019L,      "-34.1***",        -12.5,        "21.7**"
+  )
+
+Cons.Alc.Trib <- kableExtra::kable(Cons.Alc.Trib, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Cons.Alc.Trib)
+```
+`N=197. p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+## Modeling AUD Incidences 2019
+With each variable individually analyzed, they were one-hot encoded into a multiple regression model for predicting AUD incidence rates in 2019. A correlation test was used to determine which factors across variables might be interrelated. Below are the strongest inter-variable correlations.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Model1 <- tribble(
+                             ~Factors, ~`Correlation Coefficient`,
+   "GDP Per Capita- Wine Consumption",                     0.61,
+  "GDP Per Capita- Liberal Democracy",                     0.72,
+  "High Liberties- Liberal Democracy",                     0.71
+  )
+
+Model1 <- kableExtra::kable(Model1, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Model1)
+```
+Using a combination of manual stepwise regression and correlation comparisons, a final model for predicting AUD incidences was found at 90% confidence, with a maximum adjusted R-square of 0.3348.
+
+```{r,  message=FALSE, warning=FALSE, echo=FALSE}
+Model2 <- tribble(
+             ~Variable, ~Coefficient,
+           "Intercept",       "475.44***",
+    "Beer Consumption",        "60.68*",
+  "Spirit Consumption",        "49.04",
+    "Wine Consumption",        "58.14*",
+               "Islam",      "-142.15",
+                "None",      "-198.18",
+           "Electoral",       "145.79*"
+  )
+
+Model2 <- kableExtra::kable(Model2, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Model2)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+Checking the model residuals for normality, the Q-Q Plot shows the residuals are nearly normal.
+```{r}
+
+```
+
+Testing the residuals using a Kolmogorov-Smirnov test reveals a test statistic of 0.1029 and a p-value of 0.0890 on 90% confidence. Thus, we reject the null hypothesis, and conclude that the residuals are not normally distributed. For this reason, we transformed the vertical axis with a log transformation. This is the new model, with an adjusted R-square of 0.4207:
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Model4 <- tribble(
+             ~Variable, ~Coefficient,
+           "Intercept",      "6.06933***",
+    "Beer Consumption",      "0.10242**",
+  "Spirit Consumption",      "0.07164",
+    "Wine Consumption",      "0.0807*",
+               "Islam",     "-0.39931***",
+           "Electoral",       "0.1762"
+  )
+
+Model4 <- kableExtra::kable(Model4, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Model4)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+Testing for normality with Kolmogorov-Smirnov, we find a test statistic of 0.076 and p-value 0.3635, concluding we do not have evidence to conclude non-normality on 90% confidence. The quantile plot remains imperfect but is improved from the non-transformed model. Additionally, Cook's Distance reveals there are no influential points of concern. 
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+## Modeling AUD Deaths 2019
+Next, we repeated this process for the AUD deaths in 2019, finding a model with maximum adjusted R-square 0.1672 and quickly realizing only one predictor was significant.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Model7 <- tribble(
+             ~Variable, ~Coefficient,
+           "Intercept",       "1.1598**",
+  "Spirit Consumption",       "1.0614***"
+  )
+
+Model7 <- kableExtra::kable(Model7, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Model7)
+
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+Below are the residuals for the AUD 2019 deaths model. In the Kolmogorov-Smirnov test with 95% confidence, we find a test statistic of 0.2395 and p-value 0.0000, therefore rejecting the null hypothesis and concluding that the residuals are not normal.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+
+Analyzing the residuals for outliers, there are three observations of concern: #12, #42, and #91. These correspond to the countries of El Salvador, Belarus, and Mongolia, respectively. Using Cook's Distance to check for influential points, #12 sticks out.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+
+The mean rate of AUD deaths globally for 2019 was 2.59 per 100,000 people. Belarus (#12) had a rate of 21.35. El Salvador (#42) had a rate of 14.76 and Mongolia (91) a rate of 15.77. Removing Belarus from the data does not improve the normality of the residuals : Kolmogorov-Smirnov reveals a test statistic of 0.209 and a p-value of 0.0000 on 95% confidence. However, there are no influential points for the new model fit without Belarus. 
+
+Performing a logarithmic transformation on our model for deaths by transforming the vertical axis, we refit the 95% confidence multiple regression with an adjusted R-square of 0.2232.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+Model8 <- tribble(
+             ~Variable, ~Coefficient,
+           "Intercept",    "0.07243",
+  "Spirit Consumption",   "0.13838*",
+    "Beer Consumption",   "0.11883*",
+               "Islam",   "-0.49179*"
+  )
+
+Model8 <- kableExtra::kable(Model8, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  kable_classic() %>%
+  kable_paper() %>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0, color = "white", background = "black")
+
+kableExtra::scroll_box(Model8)
+```
+`p < 0.10, *p < 0.05, **p < 0.01, ***p < 0.001.`
+
+In the transformed model, the Kolmogorov-Smirnov test has a test-statistic of 0.0429 and a p-value of 0.9506 on 95% confidence, suggesting there is no evidence to conclude the residuals are non-normal. The quantile and Cook's Distance plots affirm this. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+
+The Q-Q Plot displays much more normal residuals, and the Cook's Distance still reveals several high-leverage points, but there are no influential points. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+
+# <span style="color: red;"> Discussion</span>
+
+The purpose of this study was to investigate the impact of societal, economic, and governmental factors on the rates of alcohol-use disorder and cannabis-use disorder in different countries. The research focused on legislative/policy differences, economic differences, and societal differences. 
+
+## Legislative/Policy Differences
+
+### Civil Liberties
+Legislative/policy differences refer to factors that are controlled by the government of a country, such as specific policies about substances, availability of treatment for substance-use disorders, and the level of freedom individuals have in their country. The hypothesis was countries with more freedoms and fewer regulations would show higher rates of substance-use disorders. The 	analysis supported this hypothesis, as countries with higher ratings of civil liberties also had higher rates of AUDs. In 1999, countries with higher ratings of civil liberties had 205.8 more cases per 100k than countries with moderate liberties (p<0.01) and 320.1 more cases per 100k than countries with low civil liberties ratings (p<0.01). This trend is consistent across the years 2009 and 2019 as well. In 2009, countries with higher ratings of civil liberties had 261.0 more cases per 100k than countries with moderate liberties (p<0.001) and 373.2 more cases per 100k than countries with low civil liberties ratings (p<0.001). In 2019, countries with higher ratings of civil liberties had 254.2 more cases per 100k than countries with moderate liberties (p<0.001) and 288.0 more cases per 100k than countries with low civil liberties ratings (p<0.01). There were no statistically significant results for any of the three years when comparing low civil liberties to moderate civil liberties. This trend is consistent with cannabis-use disorders as well. There are no statistically significant results among low civil liberties and moderate civil liberties among any of the years analyzed. However, in 1999 there were 42.6 more cases per 100k in countries with high civil liberties than in countries with moderate civil liberties (p<0.001) and 49.1 more cases per 100k in countries with high civil liberties than in countries with low civil liberties (p<0.001). In 2009 there were 37.5 more cases per 100k in countries with high civil liberties than in countries with moderate civil liberties (p<0.001) and 43.7 more cases per 100k in countries with high civil liberties than in countries with low civil liberties (p<0.001). In 2019 there were 36.1 more cases per 100k in countries with high civil liberties than in countries with moderate civil liberties (p<0.001) and 42.1 more cases per 100k in countries with high civil liberties than in countries with low civil liberties (p<0.001). These results indicate a trend that higher civil liberties (being freer) is correlated with higher rates of substance-use disorders. 
+
+
+### Regime
+When looking at the regime type of each country in comparison to alcohol-use disorders, the results indicate a statistically significant difference between countries with a closed-autocracy compared to an electoral democracy (p=0.0039) and liberal democracy (p=0.0000), but not compared to an electoral autocracy (p=0.0406). Across the years, closed autocracy countries had 260.3 less people per 100k with an alcohol-use disorder than electoral autocracy countries (p<0.05), 344.0 less people with an alcohol-use disorder in closed autocracy countries than in electoral democracy countries (p<0.01), and 504.4 less people with an alcohol-use disorder than in liberal democracy countries (p<0.001). In 2009 there were 279.9 less people with an alcohol-use disorder in closed autocracy countries than in electoral democracy countries (p<0.05) and 482.5 less people with an alcohol-use disorder than in countries with a liberal democracy (p<0.001). In 1999 there were 474.9 less people with an alcohol-use disorder in closed autocracy countries than in countries with a liberal democracy (p<0.001). These results indicate that countries with less strict regimes (liberal democracy) have higher rates of alcohol-use disorders than in countries with more strict regimes (closed autocracy). Countries with a closed autocracy show the lowest rates of alcohol-use disorders, with electoral democracy the next highest amount, followed by electoral democracy, and liberal democracy being the highest amounts of alcohol-use disorders. This same trend is shown with cannabis-use disorders as well. For this comparison, we used liberal democracy as the baseline to compare the other regimes against. Across all comparisons for every year, the results were statistically significant at p<0.001. In 1999 liberal democracies showed 51.8 more people with a cannabis-use disorder than electoral autocracies, 39.4 more cases per 100k than electoral democracies, and 51.3 more cases per 100k than closed autocracies. In 2019, liberal democracies showed 45.7 more cases per 100k than electoral democracies, 36.2 more cases per 100k than electoral democracies, and 45.3 more cases per 100k than closed autocracies. In 2019, liberal democracies showed 46.3 more cases per 100k than electoral autocracies, 41.3 more cases per 100k than electoral democracies, and 49.7 more cases per 100k than closed autocracies. The same trends are seen among cannabis-use disorders as alcohol-use disorders, with closed and electoral autocracies overlapping more with cannabis-use disorders.
+
+
+### Legal Drinking Age
+The legal drinking age for a country refers to the minimum age it is legal to consume alcohol. We split these ages into categories of under 18 years old, 18 years old, over 18 years old, no limit, and total ban. There were no statistically significant results when comparing the under 18 category to the 18 years old category, the 18 years old category to the over 18 category, the under 18 category to over 18 category, or the no ban category to the total ban category. We collapsed under 18, 18, and over 18 into one category titled ‘age specific.’ However, there were statistically significant results when comparing no limit to an age specific limit (p=0.0029), and an age specific limit to a total ban (p = 0.0002). These results indicate that a country having a total ban or no ban at all are significant predictors of alcohol-use disorders in comparison to an age specific limit. Countries with a total ban on average have significantly less alcohol-use disorders than countries with an age limit, and countries with no ban are also lower, but slightly higher than countries with a total ban. What this data tells us, across each variable within legislative factors, is that the less strict a country's government is, the higher chance their citizens have of developing a substance-use disorder. 
+
+### AUD Treatment
+
+
+## Economic Differences
+
+### Gross Domestic Product (GDP) Per Capita
+In 1999 there was a very weak, positive correlation between GDP and alcohol-use disorders per country. Therefore, the higher the GDP per capita, the higher the rates of alcohol-use disorder (r=0.178, p<0.05). In 2009 and 2019 this trend grew more correlated and more significant, becoming a weak positive correlation for both years (r=0.210, p<0.01 in 2009 and r=0.231, p<0.01 in 2019). These correlations are continued for cannabis-use disorder; however they are stronger and more significant than in alcohol-use disorder. In 1999, GDP per capita and CUD showed a correlation coefficient of 0.479 (p<0.001). In 2009 this correlation was 0.448 (p<0.001) and in 2019 the correlation coefficient was 0.461 (p<0.001). These all indicate a moderate, positive correlation between the two variables. 
+
+
+### Poverty
+Among the correlations between poverty and alcohol use disorder, only the year 2009 was significant, with a correlation coefficient of -0.373 and a p-value of <0.001. This indicates a weak, negative correlation, showing that as the proportion of a country’s population in poverty increases, rates of alcohol-use disorders decrease. Among the data for cannabis-use disorders, 1999 and 2009 both showed significant correlations, r=-0.450 (p<0.01) in 1999 and r=-0.312 (p<0.01) for 2009. These numbers indicate a moderate negative correlation between poverty proportion and CUD in 1999 and a weak negative correlation between poverty proportion and CUD in 2009. 
+
+
+### Unemployment
+Unemployment rates and AUD were correlated with a p-value less than 0.05 in 1999 and 2009. In 1999 the correlation coefficient between the two variables was 0.239, and 0.184 in 2009. These both indicate weak positive correlations between unemployment and AUD, indicating that as unemployment rates increase, so do rates of alcohol-use disorder. These trends are not seen among cannabis-use disorder and unemployment rates, as those relationships among the three years are not statistically significant. What this data tells us, among GDPs per capita, poverty, and unemployment rate is that the more financially strong a country is, the higher rates of alcohol and cannabis-use disorders that country experiences. This is likely due to there being more stable access to the substances for individuals in that country. 
+
+## Social Differences
+
+### Religion 
+After grouping religions together to have three categories - Islam, Christian, and Other - we ran significance and Tukey tests on AUD and CUD with each religion category. We found statistically significant results when comparing Islam and Christianity across all 3 years, as well as Other and Christianity across all 3 years, but no significant results across any of the years between Other and Islam. When comparing Islam to Christianity on AUDs, Christianity exhibited 399.4 more cases of alcohol-use disorder in 1999 (p<0.001) per 100k than Islam. This trend continued in 2009 with 388.3 more cases per 100k within Christianity than Islam (p<0.001) and 391.2 more cases per 100k in 2019 (p<0.001). When comparing the Christianity category to the Other category. We see the same trend, Christianity having 282.1 more cases of AUD per 100k in 1999 (p<0.05), 226.9 more cases per 100k in 2009 (p<0.05), and 232.8 more cases per 100k in 2019 (p<0.05). Cannabis-use disorders see a similar trend; however the statistically significant differences are within the comparisons of Islam with Christianity and Islam with Other. In 1999, Islam religions had 36.4 less cases of CUD per 100k than Christianity (p<0.001), in 2009, the difference was about the same at 36.6 less cases per 100k within Islam (p<0.001), and a difference of 34.1 cases per 100k in 2019 (p<0.001).  When comparing Islam with Other, Islam had 21.0 less cases per 100k in 2009 (p<0.05), 21.4 less cases per 100k in 2009 (p<0.05), and 21.7 less cases per 100k in 2019 (p<0.01). These results indicate that religion does play a role in predicting rates of substance-use disorders, with Islam generally showing less cases of alcohol-use and cannabis-use disorders when compared to other religions. This is likely due to the Islamic religions having more regulations on substances, such as not being allowed to consume alcohol, according to the Qur’an. 
+
+
+### Alcohol Types
+We ran Tukey tests to compare significant differences between types of alcohol consumed in comparison to AUD rates. In relation to AUD rates, the comparison between Spirits and Beer were statistically significant (p<0.001) in 2009 and 2019 and the comparison of Wine and Spirits were statistically significant in all three years - (p<0.05) in 1999 and 2009 and (p<0.01) in 2019. In 2009, there were 36.6 more people per 100k with an alcohol-use disorder who drank beer than spirits. This difference dropped to 34.1 in 2019. In 1999, 21.0 more people per 100k with AUD drank wine over spirits, which increased to 21.4 in 2009 and 21.7 in 2019. These results indicate that people experiencing an alcohol-use disorder are more likely to drink beer than spirits, and more likely to drink wine than spirits as well. 
+
+
+## Predicting Rates of AUD in 2019
+Following all the previous analyses, we ran a multiple regression model across all the variables in order to determine which variables had the most correlation. The highest correlation coefficient was between GDPs per capita and liberal democracy countries, which was r = 0.72. This indicates a strong positive correlation. What this tells us is that on average, countries with a liberal democracy tend to be more economically strong. 
+
+The next highest correlation coefficient was between high liberties (civil liberties) and liberal democracy (regime). This coefficient came out to r=0.71, indicating a strong positive correlation between the two. This makes sense considering many of the countries with high civil liberties ratings are countries with a liberal democracy (United States of America, Spain, Ireland, etc.). 
+
+The third strongest correlation coefficient was between GDPs per capita and wine consumption, with a coefficient of r = 0.61. This indicates a moderate positive correlation. This tells us that has GDP per capita increases, so does wine consumption. Further research would be needed to understand why, but one could infer that wine is typically associated with class and sophistication, and therefore consumption would increase as people have more money. 
+
+A final model was created to predict incidences of AUD. This model shows predictions at a confidence interval of 90%, with a maximum adjusted R-square of 0.3348. 	
+
+
+## Limitations
+
+The limitations of this research as we conducted is causality, data limitations, and ecological fallacy. Most of our data we can only draw correlational information from, and it may be difficult to say one or more variables directly caused AUD or CUD rates to increase or decrease. With that, we did not run any analyses to check for interaction effects, so we are unable to conclude if any interactions between variables had a significant impact on AUD and CUD rates. While we were able to find and analyze quite a bit of data from varying datasets, there were also some variables we wanted to look at but just couldn’t find good data or enough data to include in our research. A third limitation of this research is ecological fallacy. A lot of our data describes countries as a whole rather than looking at smaller units of those countries and the differences that may exist within them. This is evident in the religion data, as we could only compare the major religion of each country, which doesn’t always accurately portray the whole country or even a majority of the country. For example, a country may have 3 major religions, 35% one religion, 33% another religion, and 32% a third religion, and the country would be labeled as the first religion, as it is the highest number. This, however, ignores 65% of the country’s religious affiliation. Another limitation of our research is the timeframe. Our main dataset only has data through 2019, which was just before the Covid pandemic really hit. It would be interesting to find more current data to see if and how Covid-19 has changed rates of alcohol and cannabis use disorders. 
+
+# <span style="color: red;">References </span> 
+
+[1] (“About GBD | Institute for Health Metrics and Evaluation”, n.d.) About GBD. Institute for Health Metrics and Evaluation. (2023, February 10). https://www.healthdata.org/gbd/about 
+
+[2] American Psychiatric Association. (2013). Diagnostic and statistical manual of mental disorders (5th ed.). https://doi.org/10.1176/appi.books.9780890425596
+
+[3] Centers for Disease Control and Prevention. (2022, April 14). Drinking too much alcohol can harm your health. learn the facts. Centers for Disease Control and Prevention. https://www.cdc.gov/alcohol/fact-sheets/alcohol-use.htm#:~:text=Over%20time%2C%20excessive%20alcohol%20use,liver%20disease%2C%20and%20digestive%20problems.
+
+[4] Data Collection and Production. ILOSTAT. (n.d.). https://ilostat.ilo.org/about/data-collection-and-production/
+
+[5] Datopian. (n.d.). World religion projections. DataHub. https://datahub.io/sagargg/world-religion-projections#resource-by_rounded_percentage_share
+
+[6] Every Country in the World. (2022, November 7). Main religion of every country, every country in the world. Every Country in the World. https://www.everycountryintheworld.com/religions/
+
+[7] GBD results. Institute for Health Metrics and Evaluation. (n.d.).
+https://vizhub.healthdata.org/gbd-results/?params=gbd-api-2019-public%2Fee5146ecf10e09042077bcd5542b7780
+
+[8] GDP per capita (current US$). World Bank Open Data. (n.d.-a). https://data.worldbank.org/indicator/NY.GDP.PCAP.CD
+
+[9] GDP per capita (current US$). World Bank Open Data. (n.d.). https://data.worldbank.org/indicator/NY.GDP.PCAP.CD 
+
+[10] How we collect data. Institute for Health Metrics and Evaluation. (2022, November 4). https://www.healthdata.org/data-tools-practices/data-collection 
+
+[11] Poverty headcount ratio at $2.15 a day (2017 PPP) (% of population). World Bank Open Data. (n.d.-b). https://data.worldbank.org/indicator/SI.POV.DDAY 
+
+[12] Share of people with alcohol use disorders receiving treatment. Our World in Data. (n.d.).  https://ourworldindata.org/grapher/share-with-alcohol-use-disorders-receiving-treatment
+
+[13] Unemployment, total (% of total labor force) (modeled ILO estimate). World Bank Open Data. (n.d.). https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS
+
+[14] World Bank Group - International Development, Poverty, & Sustainability. World Bank.
+(n.d.).https://www.worldbank.org/en/home#:~:text=The%20World%20Bank%20has%20two,prosperity%20in%20a%20sustainable%20way. 
+
+[15] World Health Organization. (n.d.-a). Gho | by category | age limits - alcohol service/sales - by country. World Health Organization. https://apps.who.int/gho/data/node.main.A1144?lang=en 
+
+[16] World Health Organization. (n.d.). Gho | by category | age limits - alcohol service/sales - by country. World Health Organization. https://apps.who.int/gho/data/node.main.A1144?lang=en
